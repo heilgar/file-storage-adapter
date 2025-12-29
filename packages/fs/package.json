@@ -1,0 +1,40 @@
+{
+  "name": "@file-storage-adapter/fs",
+  "version": "1.0.0",
+  "description": "Filesystem storage adapter",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "storage",
+    "filesystem",
+    "files"
+  ],
+  "author": "Oleh Hrebeniuk",
+  "license": "MIT",
+  "peerDependencies": {
+    "@file-storage-adapter/core": "^1.0.0"
+  },
+  "devDependencies": {
+    "@file-storage-adapter/core": "*",
+    "@types/mime-types": "^3.0.1"
+  },
+  "dependencies": {
+    "mime-types": "^3.0.2"
+  }
+}
