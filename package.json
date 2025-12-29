@@ -1,0 +1,28 @@
+{
+  "name": "@heilgar/storage-adapter",
+  "version": "1.0.0",
+  "description": "Storage adapter",
+  "keywords": [
+    "storage",
+    "adapter",
+    "multi",
+    "storage",
+    "file",
+    "storage"
+  ],
+  "homepage": "https://github.com/heilgar/storage-adapter#readme",
+  "bugs": {
+    "url": "https://github.com/heilgar/storage-adapter/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heilgar/storage-adapter.git"
+  },
+  "license": "MIT",
+  "author": "Oleh Hrebeniuk",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
