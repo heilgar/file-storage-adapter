@@ -8,7 +8,7 @@ import {
   ListResult,
   SignedUrlOptions,
   UploadOptions,
-} from '@file-storage-adapter/core';
+} from '@heilgar/file-storage-adapter-core';
 import { createReadStream, promises as fs } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { lookup } from 'mime-types';
