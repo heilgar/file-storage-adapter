@@ -1,6 +1,6 @@
 {
   "name": "@heilgar/file-storage-adapter-fs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Filesystem storage adapter",
   "type": "module",
   "main": "./dist/index.js",
@@ -27,14 +27,11 @@
   ],
   "author": "Oleh Hrebeniuk",
   "license": "MIT",
-  "peerDependencies": {
-    "@heilgar/file-storage-adapter-core": "^1.0.0"
-  },
   "devDependencies": {
-    "@heilgar/file-storage-adapter-core": "*",
     "@types/mime-types": "^3.0.1"
   },
   "dependencies": {
+    "@heilgar/file-storage-adapter-core": "^1.0.1",
     "mime-types": "^3.0.2"
   }
 }
