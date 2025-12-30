@@ -1,12 +1,14 @@
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+
+const coreDistPath = fileURLToPath(new URL('./packages/core/dist/index.js', import.meta.url));
+const coreSrcPath = fileURLToPath(new URL('./packages/core/src/index.ts', import.meta.url));
 
 export default defineConfig({
   resolve: {
     alias: {
-      '@heilgar/file-storage-adapter-core': fileURLToPath(
-        new URL('./packages/core/src/index.ts', import.meta.url),
-      ),
+      '@heilgar/file-storage-adapter-core': existsSync(coreDistPath) ? coreDistPath : coreSrcPath,
     },
   },
   test: {
