@@ -16,7 +16,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build",
     "test": "vitest run --config ../../vitest.config.js",
     "test:watch": "vitest --config ../../vitest.config.js"
   },
