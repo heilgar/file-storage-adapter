@@ -1,0 +1,41 @@
+{
+  "name": "@heilgar/file-storage-adapter-vercel-blob",
+  "version": "1.0.0",
+  "description": "Vercel Blob storage adapter",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "storage",
+    "vercel",
+    "blob"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@heilgar/file-storage-adapter-core": "^1.0.2",
+    "@vercel/blob": "^0.23.4",
+    "mime-types": "^3.0.2"
+  },
+  "devDependencies": {
+    "@heilgar/file-storage-adapter-core": "*",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.16"
+  }
+}

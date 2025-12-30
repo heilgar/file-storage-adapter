@@ -1,10 +1,10 @@
 import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, expectTypeOf, it } from 'vitest';
 import type { FileStorageAdapterConfig } from '@heilgar/file-storage-adapter-core';
-import { FsAdapter } from './index';
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it } from 'vitest';
 import type { FsAdapterConfig } from './index';
+import { FsAdapter } from './index';
 
 describe('FsAdapterConfig', () => {
   it('matches the core FileStorageAdapterConfig type', () => {
@@ -30,7 +30,7 @@ describe('FsAdapter', () => {
     const metadata = await adapter.upload('nested/file.txt', Buffer.from('hello'));
 
     expect(metadata.name).toBe('file.txt');
-    expect(metadata.size).toBe(5);
+    expect(metadata.sizeInBytes).toBe(5);
     expect(metadata.mimeType).toBe('text/plain');
     expect(metadata.uploadedAt).toBeInstanceOf(Date);
 
@@ -43,7 +43,7 @@ describe('FsAdapter', () => {
     const adapter = new FsAdapter({ rootDir });
     await adapter.upload('file.bin', Buffer.from('hello'));
 
-    const downloaded = await adapter.download('file.bin', { range: { start: 1, end: 3 } });
+    const downloaded = await adapter.download('file.bin', { range: { startByte: 1, endByte: 3 } });
     expect(downloaded.content).toEqual(Buffer.from('ell'));
   });
 
@@ -75,9 +75,20 @@ describe('FsAdapter', () => {
 
     const all = await adapter.list();
     expect(all.files.length).toBe(2);
+    expect(all.hasMore).toBe(false);
 
     const filtered = await adapter.list({ prefix: 'dir' });
     expect(filtered.files.length).toBe(2);
+  });
+
+  it('marks hasMore when the limit is reached', async () => {
+    const adapter = new FsAdapter({ rootDir });
+    await adapter.upload('a.txt', Buffer.from('a'));
+    await adapter.upload('b.txt', Buffer.from('b'));
+
+    const limited = await adapter.list({ limit: 1 });
+    expect(limited.files.length).toBe(1);
+    expect(limited.hasMore).toBe(true);
   });
 
   it('returns a public URL when baseUrl is configured', async () => {

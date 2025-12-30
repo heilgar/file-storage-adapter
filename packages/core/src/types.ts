@@ -1,9 +1,9 @@
 export interface FileMetadata {
   name: string;
   mimeType: string;
-  size: number; // in bytes
+  sizeInBytes: number;
   uploadedAt: Date;
-  metadata?: Record<string, any>; //custom metadata
+  customMetadata?: Record<string, any>;
 }
 
 export interface FileObject extends FileMetadata {
@@ -11,14 +11,15 @@ export interface FileObject extends FileMetadata {
 }
 
 export interface UploadOptions {
-  contentType?: string; // content type override
-  cacheControl?: string; // cache control header
-  path?: string; // custom path prefix
+  contentType?: string;
+  cacheControl?: string;
+  path?: string;
   metadata?: Record<string, any>;
+  isPubliclyAccessible?: boolean;
 }
 
 export interface ListOptions {
-  prefix?: string; // path prefix to filter by
+  prefix?: string;
   limit?: number;
   cursor?: string;
 }
@@ -31,9 +32,8 @@ export interface ListResult {
 
 export interface DownloadOptions {
   range?: {
-    //bytes
-    start: number;
-    end: number;
+    startByte: number;
+    endByte: number;
   };
 }
 

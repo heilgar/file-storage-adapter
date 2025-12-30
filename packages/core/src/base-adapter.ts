@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { posix as pathPosix } from 'node:path';
 import type {
   DownloadOptions,
   FileMetadata,
@@ -24,7 +24,9 @@ export abstract class BaseAdapter implements FileStorageAdapter {
    */
   protected getFullKey(key: string): string {
     if (this.config.basePath) {
-      return join(this.config.basePath, key);
+      const basePath = this.config.basePath.replace(/\\/g, '/');
+      const normalizedKey = key.replace(/\\/g, '/');
+      return pathPosix.join(basePath, normalizedKey);
     }
 
     return key;
@@ -38,8 +40,19 @@ export abstract class BaseAdapter implements FileStorageAdapter {
    * @returns The file key without the base path if applicable
    */
   protected stripBasePath(fullKey: string): string {
-    if (this.config.basePath && fullKey.startsWith(this.config.basePath)) {
-      return fullKey.slice(this.config.basePath.length + 1);
+    if (this.config.basePath) {
+      const basePath = this.config.basePath.replace(/\\/g, '/').replace(/\/+$/, '');
+      const normalizedFullKey = fullKey.replace(/\\/g, '/');
+
+      if (normalizedFullKey === basePath) {
+        return '';
+      }
+
+      if (normalizedFullKey.startsWith(`${basePath}/`)) {
+        return normalizedFullKey.slice(basePath.length + 1);
+      }
+
+      return normalizedFullKey;
     }
 
     return fullKey;
@@ -68,6 +81,18 @@ export abstract class BaseAdapter implements FileStorageAdapter {
     }
 
     return Buffer.concat(chunks);
+  }
+
+  /**
+   * Extracts the filename from a key path.
+   *
+   * @param key - The file key/path
+   *
+   * @returns The filename without the directory path
+   */
+  protected extractFileName(key: string): string {
+    const normalizedKey = key.replace(/\\/g, '/');
+    return normalizedKey.split('/').pop() || normalizedKey;
   }
 
   abstract upload(

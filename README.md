@@ -1,11 +1,12 @@
 # File Storage Adapter
 
-Simple storage adapter library for sharing a single file management interface across projects. The goal is to keep one abstraction on top of different storage implementations so moving projects between clouds (or to local storage) is easy.
+Framework-agnostic storage adapter library for sharing a single file management interface across projects. The goal is to keep one abstraction on top of different storage implementations so moving projects between clouds (or to local storage) is easy.
 
 ## Packages
 
 - `@heilgar/file-storage-adapter-core` - interfaces and base adapter helpers.
 - `@heilgar/file-storage-adapter-fs` - filesystem implementation.
+- `@heilgar/file-storage-adapter-vercel-blob` - Vercel Blob storage implementation.
 
 ## Install
 
