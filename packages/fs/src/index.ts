@@ -1,16 +1,17 @@
+import { createReadStream, createWriteStream, promises as fs } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import {
   BaseAdapter,
-  DownloadOptions,
-  FileMetadata,
-  FileObject,
-  FileStorageAdapterConfig,
-  ListOptions,
-  ListResult,
-  SignedUrlOptions,
-  UploadOptions,
+  type DownloadOptions,
+  type FileMetadata,
+  type FileObject,
+  type FileStorageAdapterConfig,
+  type ListOptions,
+  type ListResult,
+  type SignedUrlOptions,
+  type UploadOptions,
 } from '@heilgar/file-storage-adapter-core';
-import { createReadStream, promises as fs } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
 import { lookup } from 'mime-types';
 
 export interface FsAdapterConfig extends FileStorageAdapterConfig {
@@ -19,6 +20,9 @@ export interface FsAdapterConfig extends FileStorageAdapterConfig {
 }
 
 export class FsAdapter extends BaseAdapter {
+  private static readonly DEFAULT_LIST_LIMIT = 1000;
+  private static readonly METADATA_FILE_EXTENSION = '.meta.json';
+
   private rootDir: string;
   private baseUrl?: string;
 
@@ -35,7 +39,7 @@ export class FsAdapter extends BaseAdapter {
   }
 
   private getMetadataPath(key: string): string {
-    return `${this.getFilePath(key)}.meta.json`;
+    return `${this.getFilePath(key)}${FsAdapter.METADATA_FILE_EXTENSION}`;
   }
 
   private async ensureDir(filePath: string): Promise<void> {
@@ -51,16 +55,22 @@ export class FsAdapter extends BaseAdapter {
     const filePath = this.getFilePath(key);
     await this.ensureDir(filePath);
 
-    const buffer = await this.toBuffer(file);
-    await fs.writeFile(filePath, buffer);
+    if (Buffer.isBuffer(file)) {
+      await fs.writeFile(filePath, file);
+    } else if ('stream' in file && typeof file.stream === 'function') {
+      const buffer = await this.toBuffer(file);
+      await fs.writeFile(filePath, buffer);
+    } else {
+      await pipeline(file as NodeJS.ReadableStream, createWriteStream(filePath));
+    }
 
     const stat = await fs.stat(filePath);
     const metadata: FileMetadata = {
-      name: key.split('/').pop() || key,
+      name: this.extractFileName(key),
       mimeType: options?.contentType || lookup(key) || 'application/octet-stream',
-      size: stat.size,
+      sizeInBytes: stat.size,
       uploadedAt: new Date(),
-      metadata: options?.metadata,
+      customMetadata: options?.metadata,
     };
 
     const metadataPath = this.getMetadataPath(key);
@@ -75,12 +85,18 @@ export class FsAdapter extends BaseAdapter {
 
     let content: Buffer;
 
-    if (options?.range) {
-      const { start, end } = options.range;
-      const stream = createReadStream(filePath, { start, end });
-      content = await this.toBuffer(stream);
-    } else {
-      content = await fs.readFile(filePath);
+    try {
+      if (options?.range) {
+        const { startByte, endByte } = options.range;
+        const stream = createReadStream(filePath, { start: startByte, end: endByte });
+        content = await this.toBuffer(stream);
+      } else {
+        content = await fs.readFile(filePath);
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to read file at key "${key}": ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
 
     let metadata: FileMetadata;
@@ -88,15 +104,21 @@ export class FsAdapter extends BaseAdapter {
       const metaContent = await fs.readFile(metadataPath, 'utf-8');
       metadata = JSON.parse(metaContent);
       metadata.uploadedAt = new Date(metadata.uploadedAt);
-    } catch {
-      // Fallback if metadata doesn't exist
-      const stats = await fs.stat(filePath);
-      metadata = {
-        name: key.split('/').pop() || key,
-        mimeType: lookup(key) || 'application/octet-stream',
-        size: stats.size,
-        uploadedAt: stats.mtime,
-      };
+    } catch (metadataError) {
+      // Fallback to file stats if metadata doesn't exist
+      try {
+        const stats = await fs.stat(filePath);
+        metadata = {
+          name: this.extractFileName(key),
+          mimeType: lookup(key) || 'application/octet-stream',
+          sizeInBytes: stats.size,
+          uploadedAt: stats.mtime,
+        };
+      } catch (statsError) {
+        throw new Error(
+          `Failed to retrieve metadata for file at key "${key}": ${statsError instanceof Error ? statsError.message : 'Unknown error'}`,
+        );
+      }
     }
 
     return {
@@ -118,9 +140,9 @@ export class FsAdapter extends BaseAdapter {
         const filePath = this.getFilePath(key);
         const stats = await fs.stat(filePath);
         return {
-          name: key.split('/').pop() || key,
+          name: this.extractFileName(key),
           mimeType: lookup(key) || 'application/octet-stream',
-          size: stats.size,
+          sizeInBytes: stats.size,
           uploadedAt: stats.mtime,
         };
       } catch {
@@ -135,10 +157,19 @@ export class FsAdapter extends BaseAdapter {
       const metadataPath = this.getMetadataPath(key);
 
       await fs.unlink(filePath);
-      await fs.unlink(metadataPath).catch(() => {}); // Ignore if metadata doesn't exist
+
+      // Try to delete metadata file, but don't fail if it doesn't exist
+      try {
+        await fs.unlink(metadataPath);
+      } catch (metadataError) {
+        // Metadata file may not exist, which is acceptable
+        // Log for debugging if needed: console.debug(`Metadata file not found for key "${key}"`);
+      }
 
       return true;
-    } catch {
+    } catch (error) {
+      // File doesn't exist or permission denied
+      // Consider logging: console.debug(`Failed to delete file at key "${key}": ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   }
@@ -154,45 +185,61 @@ export class FsAdapter extends BaseAdapter {
   }
 
   async list(options: ListOptions = {}): Promise<ListResult> {
-    const { prefix = '', limit = 1000 } = options;
-    const files: FileMetadata[] = [];
+    const { prefix = '', limit = FsAdapter.DEFAULT_LIST_LIMIT } = options;
+    const searchDir = this.getSearchDirectory(prefix);
 
-    const searchDir = prefix
-      ? join(this.rootDir, this.getFullKey(prefix))
-      : join(this.rootDir, this.config.basePath || '');
-
-    const walkDir = async (dir: string): Promise<void> => {
-      try {
-        const entries = await fs.readdir(dir, { withFileTypes: true });
-
-        for (const entry of entries) {
-          if (files.length >= limit) break;
-
-          const fullPath = join(dir, entry.name);
-
-          if (entry.isDirectory()) {
-            await walkDir(fullPath);
-          } else if (entry.isFile() && !entry.name.endsWith('.meta.json')) {
-            const relativePath = relative(this.rootDir, fullPath);
-            const key = this.stripBasePath(relativePath);
-
-            const metadata = await this.getMetadata(key);
-            if (metadata) {
-              files.push(metadata);
-            }
-          }
-        }
-      } catch {
-        // Directory doesn't exist or not accessible
-      }
-    };
-
-    await walkDir(searchDir);
+    const files = await this.collectFiles(searchDir, limit);
 
     return {
       files,
-      hasMore: false, // Filesystem adapter loads all at once
+      hasMore: limit > 0 && files.length >= limit,
     };
+  }
+
+  private getSearchDirectory(prefix: string): string {
+    return prefix
+      ? join(this.rootDir, this.getFullKey(prefix))
+      : join(this.rootDir, this.config.basePath || '');
+  }
+
+  private async collectFiles(directory: string, limit: number): Promise<FileMetadata[]> {
+    const files: FileMetadata[] = [];
+    await this.walkDirectory(directory, files, limit);
+    return files;
+  }
+
+  private async walkDirectory(dir: string, files: FileMetadata[], limit: number): Promise<void> {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (files.length >= limit) break;
+
+        const fullPath = join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          await this.walkDirectory(fullPath, files, limit);
+        } else if (this.isDataFile(entry.name)) {
+          const metadata = await this.getFileMetadataForListing(fullPath);
+          if (metadata) {
+            files.push(metadata);
+          }
+        }
+      }
+    } catch (error) {
+      // Directory doesn't exist or not accessible
+      // Consider logging: console.debug(`Failed to read directory "${dir}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private isDataFile(fileName: string): boolean {
+    return !fileName.endsWith(FsAdapter.METADATA_FILE_EXTENSION);
+  }
+
+  private async getFileMetadataForListing(fullPath: string): Promise<FileMetadata | null> {
+    const relativePath = relative(this.rootDir, fullPath);
+    const key = this.stripBasePath(relativePath);
+    return this.getMetadata(key);
   }
 
   async getSignedUrl(key: string, options: SignedUrlOptions): Promise<string> {

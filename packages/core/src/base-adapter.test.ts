@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { posix as pathPosix } from 'node:path';
 import { Readable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { BaseAdapter } from './base-adapter';
@@ -61,18 +61,23 @@ describe('BaseAdapter', () => {
 
   it('prepends basePath when building a full key', () => {
     const adapter = new TestAdapter({ basePath: 'root' });
-    expect(adapter['getFullKey']('file.txt')).toBe(join('root', 'file.txt'));
+    expect(adapter['getFullKey']('file.txt')).toBe(pathPosix.join('root', 'file.txt'));
   });
 
   it('strips basePath from full keys', () => {
     const adapter = new TestAdapter({ basePath: 'root' });
-    const fullKey = join('root', 'nested', 'file.txt');
-    expect(adapter['stripBasePath'](fullKey)).toBe(join('nested', 'file.txt'));
+    const fullKey = pathPosix.join('root', 'nested', 'file.txt');
+    expect(adapter['stripBasePath'](fullKey)).toBe(pathPosix.join('nested', 'file.txt'));
   });
 
   it('leaves full keys intact when basePath does not match', () => {
     const adapter = new TestAdapter({ basePath: 'root' });
     expect(adapter['stripBasePath']('other/file.txt')).toBe('other/file.txt');
+  });
+
+  it('does not strip basePath prefixes without a separator', () => {
+    const adapter = new TestAdapter({ basePath: 'root' });
+    expect(adapter['stripBasePath']('rooted/file.txt')).toBe('rooted/file.txt');
   });
 
   it('returns the same buffer instance', async () => {
