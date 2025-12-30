@@ -10,7 +10,7 @@ Simple storage adapter library for sharing a single file management interface ac
 ## Install
 
 ```sh
-npm install @heilgar/file-storage-adapter-core @heilgar/file-storage-adapter-fs
+npm install @heilgar/file-storage-adapter-fs
 ```
 
 ## Usage
