@@ -1,0 +1,9 @@
+services:
+  localstack:
+    image: localstack/localstack:latest
+    env_file:
+      - .env.dev
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./docker/localstack-init.sh:/etc/localstack/init/ready.d/init.sh

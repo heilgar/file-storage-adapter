@@ -1,0 +1,44 @@
+{
+  "name": "@heilgar/file-storage-adapter-s3",
+  "version": "1.0.0",
+  "description": "S3 storage adapter",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "storage",
+    "s3",
+    "aws",
+    "file-storage",
+    "adapter"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.962.0",
+    "@aws-sdk/s3-request-presigner": "^3.962.0",
+    "@heilgar/file-storage-adapter-core": "^1.0.2",
+    "mime-types": "^3.0.2"
+  },
+  "devDependencies": {
+    "@heilgar/file-storage-adapter-core": "*",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.16"
+  }
+}
