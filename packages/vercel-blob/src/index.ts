@@ -37,7 +37,7 @@ export class VercelBlobAdapter extends BaseAdapter {
 
     // Note: Vercel Blob only supports public access as of the current API version
     // Private access is not available in the free tier
-    const blob: PutBlobResult = await put(fullKey, buffer, {
+    const _blob: PutBlobResult = await put(fullKey, buffer, {
       access: 'public',
       contentType: options?.contentType,
       addRandomSuffix: false,
@@ -145,15 +145,15 @@ export class VercelBlobAdapter extends BaseAdapter {
     };
   }
 
-  async getSignedUrl(key: string, options: SignedUrlOptions): Promise<string> {
+  async getSignedUrl(key: string, _options: SignedUrlOptions): Promise<string> {
     const fullKey = this.getFullKey(key);
     const blob = await head(fullKey, { token: this.token });
     return blob.url;
   }
 
   async getSignedUrlUpload(
-    key: string,
-    options: SignedUrlOptions,
+    _key: string,
+    _options: SignedUrlOptions,
   ): Promise<{ url: string; headers?: Record<string, string> }> {
     throw new Error(
       'Signed upload URLs are not supported for Vercel Blob adapter. Use the upload() method directly.',
@@ -186,7 +186,7 @@ export class VercelBlobAdapter extends BaseAdapter {
       // Source deletion failed - attempt rollback
       try {
         await this.delete(destinationKey);
-      } catch (rollbackError) {
+      } catch (_rollbackError) {
         // Log rollback failure for debugging
         // console.debug(`Rollback failed during move operation: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`);
       }

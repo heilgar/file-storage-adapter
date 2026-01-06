@@ -56,40 +56,40 @@ class TestAdapter extends BaseAdapter {
 describe('BaseAdapter', () => {
   it('returns the key unchanged when no basePath is set', () => {
     const adapter = new TestAdapter();
-    expect(adapter['getFullKey']('file.txt')).toBe('file.txt');
+    expect(adapter.getFullKey('file.txt')).toBe('file.txt');
   });
 
   it('prepends basePath when building a full key', () => {
     const adapter = new TestAdapter({ basePath: 'root' });
-    expect(adapter['getFullKey']('file.txt')).toBe(pathPosix.join('root', 'file.txt'));
+    expect(adapter.getFullKey('file.txt')).toBe(pathPosix.join('root', 'file.txt'));
   });
 
   it('strips basePath from full keys', () => {
     const adapter = new TestAdapter({ basePath: 'root' });
     const fullKey = pathPosix.join('root', 'nested', 'file.txt');
-    expect(adapter['stripBasePath'](fullKey)).toBe(pathPosix.join('nested', 'file.txt'));
+    expect(adapter.stripBasePath(fullKey)).toBe(pathPosix.join('nested', 'file.txt'));
   });
 
   it('leaves full keys intact when basePath does not match', () => {
     const adapter = new TestAdapter({ basePath: 'root' });
-    expect(adapter['stripBasePath']('other/file.txt')).toBe('other/file.txt');
+    expect(adapter.stripBasePath('other/file.txt')).toBe('other/file.txt');
   });
 
   it('does not strip basePath prefixes without a separator', () => {
     const adapter = new TestAdapter({ basePath: 'root' });
-    expect(adapter['stripBasePath']('rooted/file.txt')).toBe('rooted/file.txt');
+    expect(adapter.stripBasePath('rooted/file.txt')).toBe('rooted/file.txt');
   });
 
   it('returns the same buffer instance', async () => {
     const adapter = new TestAdapter();
     const input = Buffer.from('data');
-    await expect(adapter['toBuffer'](input)).resolves.toBe(input);
+    await expect(adapter.toBuffer(input)).resolves.toBe(input);
   });
 
   it('converts a readable stream to a buffer', async () => {
     const adapter = new TestAdapter();
     const stream = Readable.from([Buffer.from('hel'), 'lo']);
-    await expect(adapter['toBuffer'](stream)).resolves.toEqual(Buffer.from('hello'));
+    await expect(adapter.toBuffer(stream)).resolves.toEqual(Buffer.from('hello'));
   });
 
   it('converts file-like objects to a buffer via arrayBuffer', async () => {
@@ -102,6 +102,6 @@ describe('BaseAdapter', () => {
         return Uint8Array.from([1, 2, 3]).buffer;
       },
     } as unknown as File;
-    await expect(adapter['toBuffer'](fileLike)).resolves.toEqual(Buffer.from([1, 2, 3]));
+    await expect(adapter.toBuffer(fileLike)).resolves.toEqual(Buffer.from([1, 2, 3]));
   });
 });

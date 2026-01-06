@@ -104,7 +104,7 @@ export class FsAdapter extends BaseAdapter {
       const metaContent = await fs.readFile(metadataPath, 'utf-8');
       metadata = JSON.parse(metaContent);
       metadata.uploadedAt = new Date(metadata.uploadedAt);
-    } catch (metadataError) {
+    } catch (_metadataError) {
       // Fallback to file stats if metadata doesn't exist
       try {
         const stats = await fs.stat(filePath);
@@ -251,7 +251,7 @@ export class FsAdapter extends BaseAdapter {
     return this.getMetadata(key);
   }
 
-  async getSignedUrl(key: string, options: SignedUrlOptions): Promise<string> {
+  async getSignedUrl(key: string, _options: SignedUrlOptions): Promise<string> {
     // Filesystem doesn't support signed URLs, return public URL if baseUrl is set
     if (this.baseUrl) {
       const fullKey = this.getFullKey(key);
@@ -261,8 +261,8 @@ export class FsAdapter extends BaseAdapter {
   }
 
   async getSignedUrlUpload(
-    key: string,
-    options: SignedUrlOptions,
+    _key: string,
+    _options: SignedUrlOptions,
   ): Promise<{ url: string; headers?: Record<string, string> }> {
     throw new Error('Signed upload URLs not supported for filesystem adapter');
   }
