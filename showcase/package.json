@@ -11,6 +11,7 @@
   "dependencies": {
     "@heilgar/file-storage-adapter-core": "file:../packages/core",
     "@heilgar/file-storage-adapter-fs": "file:../packages/fs",
+    "@heilgar/file-storage-adapter-s3": "file:../packages/s3",
     "@heilgar/file-storage-adapter-vercel-blob": "file:../packages/vercel-blob",
     "next": "16.1.1",
     "react": "19.2.3",
@@ -25,3 +26,4 @@
     "typescript": "^5"
   }
 }
+
