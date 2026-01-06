@@ -1,6 +1,6 @@
 {
   "name": "@heilgar/file-storage-adapter-core",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Core types and interfaces for storage adapters",
   "type": "module",
   "main": "./dist/index.js",

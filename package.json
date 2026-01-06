@@ -1,6 +1,6 @@
 {
   "name": "@heilgar/file-storage-adapter",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Storage adapter",
   "keywords": [
     "storage",
