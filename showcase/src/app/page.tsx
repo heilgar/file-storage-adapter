@@ -5,13 +5,18 @@ import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import styles from './page.module.css';
 
-type AdapterName = 'fs' | 'vercel-blob';
+type AdapterName = 'fs' | 's3' | 'vercel-blob';
 
 const ADAPTERS: Array<{ value: AdapterName; label: string; description: string }> = [
   {
     value: 'fs',
     label: 'Filesystem',
     description: 'Local disk storage (FS_ROOT_DIR).',
+  },
+  {
+    value: 's3',
+    label: 'S3',
+    description: 'AWS S3 or LocalStack (AWS_S3_BUCKET, AWS_DEFAULT_REGION).',
   },
   {
     value: 'vercel-blob',
@@ -248,8 +253,8 @@ export default function Home() {
             <p className={styles.kicker}>Storage Adapter Showcase</p>
             <h1>Exercise every adapter with real uploads and downloads.</h1>
             <p className={styles.subhead}>
-              Point the demo at your local FS root or Vercel Blob token to validate behavior,
-              headers, and metadata end-to-end.
+              Point the demo at your local FS root, S3 bucket, or Vercel Blob token to validate
+              behavior, headers, and metadata end-to-end.
             </p>
           </div>
           <div className={styles.statusPanel}>
@@ -283,6 +288,7 @@ export default function Home() {
               <p>
                 FS_ROOT_DIR (default: <code>./storage</code>)
               </p>
+              <p>AWS_S3_BUCKET, AWS_DEFAULT_REGION, EDGE_PORT</p>
               <p>FS_BASE_URL, STORAGE_BASE_PATH, VERCEL_BLOB_TOKEN</p>
             </div>
           </div>
