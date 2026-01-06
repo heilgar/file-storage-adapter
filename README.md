@@ -46,7 +46,30 @@ npm run build
 npm test
 ```
 
+### LocalStack
+
+LocalStack is used for local development and testing of cloud services (S3) without incurring costs or requiring internet connectivity.
+
+**Start LocalStack:**
+
+```sh
+docker compose up -d
+```
+
+**List S3 buckets:**
+
+```sh
+set -a; source .env.dev; set +a
+aws --endpoint-url=http://localhost:4566 s3 ls
+```
+
+**Configuration:**
+- LocalStack automatically creates the `local-storage-bucket` on startup
+- AWS credentials are in `.env.dev` (access key: `dev`, secret key: `dev`)
+- S3 endpoint: `http://localhost:4566`
+
 ## Notes
 
 - `basePath` (optional) prefixes keys.
 - `baseUrl` (optional, fs adapter) enables `getSignedUrl` as a public URL.
+
