@@ -22,6 +22,22 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: npm ci
       - run: npm run build --workspaces --if-present
-      - run: npm publish --workspaces --access public
+      - name: Publish changed packages
+        run: |
+          for pkg in packages/*/package.json; do
+            dir=$(dirname "$pkg")
+            name=$(node -p "require('./$pkg').name")
+            version=$(node -p "require('./$pkg').version")
+
+            # Check if this version exists on NPM
+            if npm view "$name@$version" version 2>/dev/null; then
+              echo "Skipping $name@$version (already published)"
+            else
+              echo "Publishing $name@$version"
+              cd "$dir"
+              npm publish --access public
+              cd ../..
+            fi
+          done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
