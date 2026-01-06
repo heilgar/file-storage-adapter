@@ -1,5 +1,9 @@
 # File Storage Adapter
 
+[![Test](https://github.com/heilgar/file-storage-adapter/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/heilgar/file-storage-adapter/actions/workflows/test.yml)
+
+[![Latest Release](https://github.com/heilgar/file-storage-adapter/actions/workflows/npm-publish.yml/badge.svg)](https://github.com/heilgar/file-storage-adapter/actions/workflows/npm-publish.yml)
+
 Framework-agnostic storage adapter library for sharing a single file management interface across projects. The goal is to keep one abstraction on top of different storage implementations so moving projects between clouds (or to local storage) is easy.
 
 ## Packages
