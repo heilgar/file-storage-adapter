@@ -163,8 +163,11 @@ export class S3Adapter extends BaseAdapter {
 
       await this.client.send(command);
       return true;
-    } catch {
-      return false;
+    } catch (error: any) {
+      if (error?.name === 'NotFound' || error?.$metadata?.httpStatusCode === 404) {
+        return false;
+      }
+      throw error;
     }
   }
 
