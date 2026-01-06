@@ -142,9 +142,12 @@ export class S3Adapter extends BaseAdapter {
         uploadedAt: response.LastModified || new Date(),
         customMetadata: response.Metadata,
       };
-    } catch (error: any) {
-      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
-        return null;
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null) {
+        const err = error as { name?: string; $metadata?: { httpStatusCode?: number } };
+        if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+          return null;
+        }
       }
       throw error;
     }
