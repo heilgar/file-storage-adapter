@@ -35,8 +35,9 @@ export class VercelBlobAdapter extends BaseAdapter {
     const fullKey = this.getFullKey(key);
     const buffer = await this.toBuffer(file);
 
+    // Note: Vercel Blob only supports public access as of the current API version
+    // Private access is not available in the free tier
     const blob: PutBlobResult = await put(fullKey, buffer, {
-      // access: options?.public ? 'public' : 'private', - private is not available
       access: 'public',
       contentType: options?.contentType,
       addRandomSuffix: false,
@@ -55,7 +56,9 @@ export class VercelBlobAdapter extends BaseAdapter {
   async download(key: string, options: DownloadOptions = {}): Promise<FileObject> {
     const fullKey = this.getFullKey(key);
     if (options.range) {
-      throw new Error(`Range downloads are not supported for Vercel Blob adapter`);
+      throw new Error(
+        'Range downloads are not supported by Vercel Blob. Consider downloading the full file and slicing in memory.',
+      );
     }
 
     const metadata = await this.getMetadata(key);
@@ -87,7 +90,12 @@ export class VercelBlobAdapter extends BaseAdapter {
         sizeInBytes: blob.size,
         uploadedAt: new Date(blob.uploadedAt),
       };
-    } catch {
+    } catch (error) {
+      // File not found or access denied
+      if (error instanceof Error && !error.message.includes('404')) {
+        // Log unexpected errors for debugging
+        // console.debug(`Failed to get metadata for key "${key}": ${error.message}`);
+      }
       return null;
     }
   }
@@ -97,7 +105,12 @@ export class VercelBlobAdapter extends BaseAdapter {
       const fullKey = this.getFullKey(key);
       await del(fullKey, { token: this.token });
       return true;
-    } catch {
+    } catch (error) {
+      // File not found or access denied
+      if (error instanceof Error && !error.message.includes('404')) {
+        // Log unexpected errors for debugging
+        // console.debug(`Failed to delete file at key "${key}": ${error.message}`);
+      }
       return false;
     }
   }
@@ -167,7 +180,21 @@ export class VercelBlobAdapter extends BaseAdapter {
 
   async move(sourceKey: string, destinationKey: string): Promise<FileMetadata> {
     const metadata = await this.copy(sourceKey, destinationKey);
-    await this.delete(sourceKey);
+
+    const deleted = await this.delete(sourceKey);
+    if (!deleted) {
+      // Source deletion failed - attempt rollback
+      try {
+        await this.delete(destinationKey);
+      } catch (rollbackError) {
+        // Log rollback failure for debugging
+        // console.debug(`Rollback failed during move operation: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`);
+      }
+      throw new Error(
+        `Failed to delete source file "${sourceKey}" after copying to "${destinationKey}"`,
+      );
+    }
+
     return metadata;
   }
 }

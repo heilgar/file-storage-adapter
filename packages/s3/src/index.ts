@@ -62,10 +62,10 @@ export class S3Adapter extends BaseAdapter {
     const buffer = await this.toBuffer(file);
     const contentType = options?.contentType || lookup(key) || S3Adapter.DEFAULT_MIME_TYPE;
 
+    // Note: S3 metadata is stored as JSON string to preserve key casing and complex values
+    // S3 natively lowercases metadata keys, which can cause issues with case-sensitive applications
     const metadata: Record<string, string> = {};
     if (options?.metadata) {
-      // S3 lowercases metadata keys, so we need to store original case mapping
-      // Store the original metadata as JSON in a special key to preserve casing
       metadata['x-amz-meta-custom'] = JSON.stringify(options.metadata);
     }
 
@@ -172,9 +172,12 @@ export class S3Adapter extends BaseAdapter {
 
       await this.client.send(command);
       return true;
-    } catch (error: any) {
-      if (error?.name === 'NotFound' || error?.$metadata?.httpStatusCode === 404) {
-        return false;
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null) {
+        const err = error as { name?: string; $metadata?: { httpStatusCode?: number } };
+        if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+          return false;
+        }
       }
       throw error;
     }
@@ -272,11 +275,12 @@ export class S3Adapter extends BaseAdapter {
     try {
       await this.delete(sourceKey);
     } catch (error) {
-      // Attempt rollback: remove the copied destination object to avoid duplicates.
+      // Attempt rollback: remove the copied destination object to avoid duplicates
       try {
         await this.delete(destinationKey);
-      } catch {
-        // Ignore rollback errors; surface the original delete failure instead.
+      } catch (rollbackError) {
+        // Log rollback failure for debugging
+        // console.debug(`Rollback failed during move operation: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`);
       }
 
       const message = error instanceof Error && error.message ? error.message : String(error);
