@@ -1,6 +1,6 @@
-import { createAdapter, getAdapterName } from "../../../lib/adapters";
+import { createAdapter, getAdapterName } from '../../../lib/adapters';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   let adapterName: string | undefined;
@@ -13,12 +13,12 @@ export async function POST(request: Request) {
       destinationKey?: string;
     };
 
-    adapterName = getAdapterName(body.adapter ?? "fs");
+    adapterName = getAdapterName(body.adapter ?? 'fs');
     sourceKey = body.sourceKey?.trim();
     destinationKey = body.destinationKey?.trim();
 
     if (!sourceKey || !destinationKey) {
-      return Response.json({ error: "sourceKey and destinationKey are required" }, { status: 400 });
+      return Response.json({ error: 'sourceKey and destinationKey are required' }, { status: 400 });
     }
 
     const adapter = createAdapter(adapterName);
@@ -26,8 +26,8 @@ export async function POST(request: Request) {
 
     return Response.json({ metadata });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Copy failed";
-    console.error("copy failed", { error, adapter: adapterName, sourceKey, destinationKey });
+    const message = error instanceof Error ? error.message : 'Copy failed';
+    console.error('copy failed', { error, adapter: adapterName, sourceKey, destinationKey });
     return Response.json({ error: message }, { status: 500 });
   }
 }

@@ -1,44 +1,41 @@
-"use client";
+'use client';
 
-import type { FileMetadata } from "@heilgar/file-storage-adapter-core";
-import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
-import styles from "./page.module.css";
+import type { FileMetadata } from '@heilgar/file-storage-adapter-core';
+import type { FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+import styles from './page.module.css';
 
-type AdapterName = "fs" | "vercel-blob";
+type AdapterName = 'fs' | 'vercel-blob';
 
 const ADAPTERS: Array<{ value: AdapterName; label: string; description: string }> = [
   {
-    value: "fs",
-    label: "Filesystem",
-    description: "Local disk storage (FS_ROOT_DIR).",
+    value: 'fs',
+    label: 'Filesystem',
+    description: 'Local disk storage (FS_ROOT_DIR).',
   },
   {
-    value: "vercel-blob",
-    label: "Vercel Blob",
-    description: "Remote object storage (VERCEL_BLOB_TOKEN).",
+    value: 'vercel-blob',
+    label: 'Vercel Blob',
+    description: 'Remote object storage (VERCEL_BLOB_TOKEN).',
   },
 ];
 
 const formatBytes = (bytes: number | undefined) => {
-  if (!Number.isFinite(bytes)) return "—";
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  const index = Math.min(
-    Math.floor(Math.log(bytes as number) / Math.log(1024)),
-    units.length - 1,
-  );
+  if (!Number.isFinite(bytes)) return '—';
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const index = Math.min(Math.floor(Math.log(bytes as number) / Math.log(1024)), units.length - 1);
   const value = (bytes as number) / Math.pow(1024, index);
   return `${value.toFixed(value < 10 && index > 0 ? 1 : 0)} ${units[index]}`;
 };
 
 const formatDate = (value: Date | string | undefined) => {
-  if (!value) return "—";
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "—";
+  if (!value) return '—';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
+    dateStyle: 'medium',
+    timeStyle: 'short',
   }).format(date);
 };
 
@@ -52,34 +49,34 @@ const fetchJson = async (input: RequestInfo, init?: RequestInit) => {
 };
 
 export default function Home() {
-  const [adapter, setAdapter] = useState<AdapterName>("fs");
+  const [adapter, setAdapter] = useState<AdapterName>('fs');
   const [files, setFiles] = useState<FileMetadata[]>([]);
-  const [status, setStatus] = useState<string>("Ready.");
+  const [status, setStatus] = useState<string>('Ready.');
   const [busy, setBusy] = useState(false);
-  const [uploadKey, setUploadKey] = useState("");
+  const [uploadKey, setUploadKey] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [prefix, setPrefix] = useState("");
-  const [copySource, setCopySource] = useState("");
-  const [copyDest, setCopyDest] = useState("");
-  const [moveSource, setMoveSource] = useState("");
-  const [moveDest, setMoveDest] = useState("");
-  const [signedKey, setSignedKey] = useState("");
-  const [signedUrl, setSignedUrl] = useState("");
+  const [prefix, setPrefix] = useState('');
+  const [copySource, setCopySource] = useState('');
+  const [copyDest, setCopyDest] = useState('');
+  const [moveSource, setMoveSource] = useState('');
+  const [moveDest, setMoveDest] = useState('');
+  const [signedKey, setSignedKey] = useState('');
+  const [signedUrl, setSignedUrl] = useState('');
 
   const refreshList = async () => {
     try {
       setBusy(true);
-      setStatus("Refreshing list...");
-      const url = new URL("/api/list", window.location.origin);
-      url.searchParams.set("adapter", adapter);
+      setStatus('Refreshing list...');
+      const url = new URL('/api/list', window.location.origin);
+      url.searchParams.set('adapter', adapter);
       if (prefix.trim()) {
-        url.searchParams.set("prefix", prefix.trim());
+        url.searchParams.set('prefix', prefix.trim());
       }
       const result = await fetchJson(url.toString());
       setFiles(result.files || []);
       setStatus(`Loaded ${result.files?.length ?? 0} file(s).`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to list files";
+      const message = error instanceof Error ? error.message : 'Failed to list files';
       setStatus(message);
     } finally {
       setBusy(false);
@@ -93,29 +90,29 @@ export default function Home() {
   const handleUpload = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!uploadFile) {
-      setStatus("Select a file to upload.");
+      setStatus('Select a file to upload.');
       return;
     }
 
     try {
       setBusy(true);
-      setStatus("Uploading file...");
+      setStatus('Uploading file...');
       const form = new FormData();
-      form.set("file", uploadFile);
-      form.set("adapter", adapter);
+      form.set('file', uploadFile);
+      form.set('adapter', adapter);
       if (uploadKey.trim()) {
-        form.set("key", uploadKey.trim());
+        form.set('key', uploadKey.trim());
       }
       await fetchJson(`/api/upload?adapter=${adapter}`, {
-        method: "POST",
+        method: 'POST',
         body: form,
       });
-      setStatus("Upload complete.");
-      setUploadKey("");
+      setStatus('Upload complete.');
+      setUploadKey('');
       setUploadFile(null);
       await refreshList();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Upload failed";
+      const message = error instanceof Error ? error.message : 'Upload failed';
       setStatus(message);
     } finally {
       setBusy(false);
@@ -126,25 +123,27 @@ export default function Home() {
     try {
       setBusy(true);
       setStatus(`Downloading ${key}...`);
-      const url = new URL("/api/download", window.location.origin);
-      url.searchParams.set("adapter", adapter);
-      url.searchParams.set("key", key);
+      const url = new URL('/api/download', window.location.origin);
+      url.searchParams.set('adapter', adapter);
+      url.searchParams.set('key', key);
       const response = await fetch(url.toString());
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data?.error || "Download failed");
+        throw new Error(data?.error || 'Download failed');
       }
       const blob = await response.blob();
-      const filenameHeader = response.headers.get("X-File-Name");
-      const filename = filenameHeader ? decodeURIComponent(filenameHeader) : key.split("/").pop() || key;
-      const link = document.createElement("a");
+      const filenameHeader = response.headers.get('X-File-Name');
+      const filename = filenameHeader
+        ? decodeURIComponent(filenameHeader)
+        : key.split('/').pop() || key;
+      const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = filename;
       link.click();
       URL.revokeObjectURL(link.href);
       setStatus(`Downloaded ${filename}.`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Download failed";
+      const message = error instanceof Error ? error.message : 'Download failed';
       setStatus(message);
     } finally {
       setBusy(false);
@@ -155,14 +154,14 @@ export default function Home() {
     try {
       setBusy(true);
       setStatus(`Deleting ${key}...`);
-      const url = new URL("/api/delete", window.location.origin);
-      url.searchParams.set("adapter", adapter);
-      url.searchParams.set("key", key);
-      await fetchJson(url.toString(), { method: "DELETE" });
+      const url = new URL('/api/delete', window.location.origin);
+      url.searchParams.set('adapter', adapter);
+      url.searchParams.set('key', key);
+      await fetchJson(url.toString(), { method: 'DELETE' });
       setStatus(`Deleted ${key}.`);
       await refreshList();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Delete failed";
+      const message = error instanceof Error ? error.message : 'Delete failed';
       setStatus(message);
     } finally {
       setBusy(false);
@@ -173,22 +172,22 @@ export default function Home() {
     event.preventDefault();
     try {
       setBusy(true);
-      setStatus("Copying file...");
-      await fetchJson("/api/copy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      setStatus('Copying file...');
+      await fetchJson('/api/copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           adapter,
           sourceKey: copySource.trim(),
           destinationKey: copyDest.trim(),
         }),
       });
-      setStatus("Copy complete.");
-      setCopySource("");
-      setCopyDest("");
+      setStatus('Copy complete.');
+      setCopySource('');
+      setCopyDest('');
       await refreshList();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Copy failed";
+      const message = error instanceof Error ? error.message : 'Copy failed';
       setStatus(message);
     } finally {
       setBusy(false);
@@ -199,22 +198,22 @@ export default function Home() {
     event.preventDefault();
     try {
       setBusy(true);
-      setStatus("Moving file...");
-      await fetchJson("/api/move", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      setStatus('Moving file...');
+      await fetchJson('/api/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           adapter,
           sourceKey: moveSource.trim(),
           destinationKey: moveDest.trim(),
         }),
       });
-      setStatus("Move complete.");
-      setMoveSource("");
-      setMoveDest("");
+      setStatus('Move complete.');
+      setMoveSource('');
+      setMoveDest('');
       await refreshList();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Move failed";
+      const message = error instanceof Error ? error.message : 'Move failed';
       setStatus(message);
     } finally {
       setBusy(false);
@@ -225,17 +224,17 @@ export default function Home() {
     event.preventDefault();
     try {
       setBusy(true);
-      setStatus("Fetching signed URL...");
-      const url = new URL("/api/signed-url", window.location.origin);
-      url.searchParams.set("adapter", adapter);
-      url.searchParams.set("key", signedKey.trim());
+      setStatus('Fetching signed URL...');
+      const url = new URL('/api/signed-url', window.location.origin);
+      url.searchParams.set('adapter', adapter);
+      url.searchParams.set('key', signedKey.trim());
       const result = await fetchJson(url.toString());
       setSignedUrl(result.url);
-      setStatus("Signed URL ready.");
+      setStatus('Signed URL ready.');
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Signed URL failed";
+      const message = error instanceof Error ? error.message : 'Signed URL failed';
       setStatus(message);
-      setSignedUrl("");
+      setSignedUrl('');
     } finally {
       setBusy(false);
     }
@@ -249,13 +248,13 @@ export default function Home() {
             <p className={styles.kicker}>Storage Adapter Showcase</p>
             <h1>Exercise every adapter with real uploads and downloads.</h1>
             <p className={styles.subhead}>
-              Point the demo at your local FS root or Vercel Blob token to validate
-              behavior, headers, and metadata end-to-end.
+              Point the demo at your local FS root or Vercel Blob token to validate behavior,
+              headers, and metadata end-to-end.
             </p>
           </div>
           <div className={styles.statusPanel}>
             <span className={styles.statusLabel}>Status</span>
-            <p className={styles.statusText}>{busy ? "Working..." : status}</p>
+            <p className={styles.statusText}>{busy ? 'Working...' : status}</p>
             <button className={styles.secondaryButton} onClick={refreshList} disabled={busy}>
               Refresh list
             </button>
@@ -284,9 +283,7 @@ export default function Home() {
               <p>
                 FS_ROOT_DIR (default: <code>./storage</code>)
               </p>
-              <p>
-                FS_BASE_URL, STORAGE_BASE_PATH, VERCEL_BLOB_TOKEN
-              </p>
+              <p>FS_BASE_URL, STORAGE_BASE_PATH, VERCEL_BLOB_TOKEN</p>
             </div>
           </div>
         </section>
@@ -345,7 +342,7 @@ export default function Home() {
               ) : (
                 files.map((file, index) => {
                   const key =
-                    typeof file.metadata?.key === "string" ? file.metadata.key : file.name;
+                    typeof file.metadata?.key === 'string' ? file.metadata.key : file.name;
                   return (
                     <div
                       key={`${key}-${file.uploadedAt}-${file.size}-${index}`}
@@ -354,7 +351,7 @@ export default function Home() {
                       <div>
                         <p className={styles.fileName}>{key}</p>
                         <p className={styles.fileMeta}>
-                          {file.mimeType || "unknown"} · {formatBytes(file.size)} ·{" "}
+                          {file.mimeType || 'unknown'} · {formatBytes(file.size)} ·{' '}
                           {formatDate(file.uploadedAt)}
                         </p>
                       </div>

@@ -16,16 +16,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/heilgar/storage-adapter.git"
+    "url": "https://github.com/heilgar/file-storage-adapter"
   },
   "license": "MIT",
   "author": "Oleh Hrebeniuk",
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "lint": "biome lint .",
-    "fmt": "biome format --write .",
-    "check": "biome check --write .",
+    "lint": "biome lint ./packages",
+    "fmt": "biome format --write ./packages",
+    "check": "biome check --write ./packages",
     "clean": "rm -rf packages/*/dist/ packages/*/tsconfig.tsbuildinfo"
   },
   "workspaces": [

@@ -279,13 +279,8 @@ export class S3Adapter extends BaseAdapter {
         // Ignore rollback errors; surface the original delete failure instead.
       }
 
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : String(error);
-      throw new Error(
-        `Failed to move file from "${sourceKey}" to "${destinationKey}": ${message}`,
-      );
+      const message = error instanceof Error && error.message ? error.message : String(error);
+      throw new Error(`Failed to move file from "${sourceKey}" to "${destinationKey}": ${message}`);
     }
     return metadata;
   }

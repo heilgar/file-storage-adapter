@@ -141,7 +141,11 @@ describe('S3Adapter', () => {
     expect(firstPage.files.length).toBe(2);
     expect(firstPage.hasMore).toBe(true);
 
-    const secondPage = await adapter.list({ prefix: 'page/', limit: 2, cursor: firstPage.nextCursor });
+    const secondPage = await adapter.list({
+      prefix: 'page/',
+      limit: 2,
+      cursor: firstPage.nextCursor,
+    });
     expect(secondPage.files.length).toBe(1);
     expect(secondPage.hasMore).toBe(false);
   });
