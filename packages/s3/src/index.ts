@@ -253,7 +253,25 @@ export class S3Adapter extends BaseAdapter {
 
   async move(sourceKey: string, destinationKey: string): Promise<FileMetadata> {
     const metadata = await this.copy(sourceKey, destinationKey);
-    await this.delete(sourceKey);
+
+    try {
+      await this.delete(sourceKey);
+    } catch (error) {
+      // Attempt rollback: remove the copied destination object to avoid duplicates.
+      try {
+        await this.delete(destinationKey);
+      } catch {
+        // Ignore rollback errors; surface the original delete failure instead.
+      }
+
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : String(error);
+      throw new Error(
+        `Failed to move file from "${sourceKey}" to "${destinationKey}": ${message}`,
+      );
+    }
     return metadata;
   }
 }
