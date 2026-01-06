@@ -31,12 +31,30 @@ const url = await adapter.getSignedUrl('images/logo.png', { expiresIn: 3600 });
 
 ## Configuration
 
-- `bucket` (required) - S3 bucket name
-- `region` (required) - AWS region
-- `credentials` (optional) - AWS credentials object with `accessKeyId` and `secretAccessKey`
-- `endpoint` (optional) - Custom S3 endpoint (for LocalStack or S3-compatible services)
-- `forcePathStyle` (optional) - Use path-style URLs instead of virtual-hosted-style (required for LocalStack)
-- `basePath` (optional) - Prefix for all keys
+**Config type:**
+```ts
+interface S3AdapterConfig {
+  bucket: string;       // S3 bucket name
+  region: string;       // AWS region
+  basePath?: string;    // Optional prefix for all keys
+  endpoint?: string;    // Optional custom endpoint (for LocalStack, MinIO, etc.)
+  credentials?: {       // Optional AWS credentials
+    accessKeyId: string;
+    secretAccessKey: string;
+  };
+  forcePathStyle?: boolean; // Optional: use path-style URLs
+}
+```
+
+**Required fields:**
+- `bucket` - S3 bucket name
+- `region` - AWS region
+
+**Optional fields:**
+- `credentials` - AWS credentials object with `accessKeyId` and `secretAccessKey`
+- `endpoint` - Custom S3 endpoint (for LocalStack or S3-compatible services)
+- `forcePathStyle` - Use path-style URLs instead of virtual-hosted-style (required for LocalStack)
+- `basePath` - Prefix for all keys
 
 ## LocalStack Development
 

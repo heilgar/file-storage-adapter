@@ -1,6 +1,6 @@
 {
   "name": "@heilgar/file-storage-adapter-fs",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Filesystem storage adapter",
   "type": "module",
   "main": "./dist/index.js",

@@ -163,13 +163,19 @@ export class FsAdapter extends BaseAdapter {
         await fs.unlink(metadataPath);
       } catch (metadataError) {
         // Metadata file may not exist, which is acceptable
-        // Log for debugging if needed: console.debug(`Metadata file not found for key "${key}"`);
+        if (metadataError instanceof Error && !metadataError.message.includes('ENOENT')) {
+          // Log unexpected errors for debugging
+          // console.debug(`Failed to delete metadata for key "${key}": ${metadataError.message}`);
+        }
       }
 
       return true;
     } catch (error) {
       // File doesn't exist or permission denied
-      // Consider logging: console.debug(`Failed to delete file at key "${key}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (error instanceof Error && !error.message.includes('ENOENT')) {
+        // Log non-ENOENT errors for debugging
+        // console.debug(`Failed to delete file at key "${key}": ${error.message}`);
+      }
       return false;
     }
   }
@@ -228,7 +234,10 @@ export class FsAdapter extends BaseAdapter {
       }
     } catch (error) {
       // Directory doesn't exist or not accessible
-      // Consider logging: console.debug(`Failed to read directory "${dir}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (error instanceof Error && !error.message.includes('ENOENT')) {
+        // Log unexpected errors for debugging
+        // console.debug(`Failed to read directory "${dir}": ${error.message}`);
+      }
     }
   }
 
@@ -270,13 +279,18 @@ export class FsAdapter extends BaseAdapter {
     const destMetaPath = this.getMetadataPath(destinationKey);
     try {
       await fs.copyFile(sourceMetaPath, destMetaPath);
-    } catch {
-      // Metadata doesn't exist, create new
+    } catch (error) {
+      // Metadata doesn't exist or is inaccessible - this is acceptable
+      // The getMetadata call below will generate fallback metadata from file stats
+      if (error instanceof Error && !error.message.includes('ENOENT')) {
+        // Log unexpected errors for debugging
+        // console.debug(`Failed to copy metadata from "${sourceKey}" to "${destinationKey}": ${error.message}`);
+      }
     }
 
     const metadata = await this.getMetadata(destinationKey);
     if (!metadata) {
-      throw new Error('Failed to copy file');
+      throw new Error(`Failed to copy file from "${sourceKey}" to "${destinationKey}"`);
     }
 
     return metadata;

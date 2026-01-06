@@ -3,7 +3,7 @@ export interface FileMetadata {
   mimeType: string;
   sizeInBytes: number;
   uploadedAt: Date;
-  customMetadata?: Record<string, any>;
+  customMetadata?: Record<string, unknown>;
 }
 
 export interface FileObject extends FileMetadata {
@@ -14,7 +14,7 @@ export interface UploadOptions {
   contentType?: string;
   cacheControl?: string;
   path?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   isPubliclyAccessible?: boolean;
 }
 
@@ -82,7 +82,7 @@ export interface FileStorageAdapter {
    *
    * @param key - File identifier
    *
-   * @returns void
+   * @returns FileMetadata | null
    */
   getMetadata(key: string): Promise<FileMetadata | null>;
 

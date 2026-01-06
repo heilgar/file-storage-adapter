@@ -70,11 +70,13 @@ export abstract class BaseAdapter implements FileStorageAdapter {
       return file;
     }
 
-    if ('stream' in file && typeof file.stream === 'function') {
-      const arrayBuffer = await file.arrayBuffer();
+    // Check if it's a File object (has arrayBuffer method)
+    if (typeof (file as File).arrayBuffer === 'function') {
+      const arrayBuffer = await (file as File).arrayBuffer();
       return Buffer.from(arrayBuffer);
     }
 
+    // Treat as NodeJS.ReadableStream
     const chunks: Buffer[] = [];
     for await (const chunk of file as NodeJS.ReadableStream) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));

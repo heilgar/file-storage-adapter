@@ -1,6 +1,6 @@
 {
   "name": "@heilgar/file-storage-adapter-vercel-blob",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Vercel Blob storage adapter",
   "type": "module",
   "main": "./dist/index.js",

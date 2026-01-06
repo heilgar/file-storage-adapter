@@ -1,6 +1,6 @@
 {
   "name": "@heilgar/file-storage-adapter",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Storage adapter",
   "keywords": [
     "storage",
@@ -26,6 +26,7 @@
     "lint": "biome lint ./packages",
     "fmt": "biome format --write ./packages",
     "check": "biome check --write ./packages",
+    "check:unsafe": "biome check --write --unsafe ./packages",
     "clean": "rm -rf packages/*/dist/ packages/*/tsconfig.tsbuildinfo"
   },
   "workspaces": [
