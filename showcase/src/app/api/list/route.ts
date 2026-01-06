@@ -1,14 +1,14 @@
-import { createAdapter, getAdapterName } from "../../../lib/adapters";
+import { createAdapter, getAdapterName } from '../../../lib/adapters';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   let adapterName: string | undefined;
   try {
     const url = new URL(request.url);
-    adapterName = getAdapterName(url.searchParams.get("adapter") || "fs");
-    const prefix = url.searchParams.get("prefix") || undefined;
-    const limitParam = url.searchParams.get("limit");
+    adapterName = getAdapterName(url.searchParams.get('adapter') || 'fs');
+    const prefix = url.searchParams.get('prefix') || undefined;
+    const limitParam = url.searchParams.get('limit');
     const limit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
 
     const adapter = createAdapter(adapterName);
@@ -19,8 +19,8 @@ export async function GET(request: Request) {
 
     return Response.json(result);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "List failed";
-    console.error("list failed", { error, adapter: adapterName });
+    const message = error instanceof Error ? error.message : 'List failed';
+    console.error('list failed', { error, adapter: adapterName });
     return Response.json({ error: message }, { status: 500 });
   }
 }

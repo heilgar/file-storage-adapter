@@ -104,7 +104,9 @@
   gap: 6px;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
 }
 
 .activeToggle {
@@ -200,7 +202,9 @@
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .primaryButton {
