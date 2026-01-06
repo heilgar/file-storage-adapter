@@ -64,10 +64,9 @@ export class S3Adapter extends BaseAdapter {
 
     const metadata: Record<string, string> = {};
     if (options?.metadata) {
-      // Convert custom metadata to S3 metadata format (string values only)
-      Object.entries(options.metadata).forEach(([k, v]) => {
-        metadata[k] = String(v);
-      });
+      // S3 lowercases metadata keys, so we need to store original case mapping
+      // Store the original metadata as JSON in a special key to preserve casing
+      metadata['x-amz-meta-custom'] = JSON.stringify(options.metadata);
     }
 
     const command = new PutObjectCommand({
@@ -115,12 +114,17 @@ export class S3Adapter extends BaseAdapter {
     }
     const content = Buffer.concat(chunks);
 
+    // Parse custom metadata from JSON if it exists
+    const customMetadata = response.Metadata?.['x-amz-meta-custom']
+      ? JSON.parse(response.Metadata['x-amz-meta-custom'])
+      : response.Metadata;
+
     return {
       name: this.extractFileName(key),
       mimeType: response.ContentType || S3Adapter.DEFAULT_MIME_TYPE,
       sizeInBytes: response.ContentLength || content.length,
       uploadedAt: response.LastModified || new Date(),
-      customMetadata: response.Metadata,
+      customMetadata,
       content,
     };
   }
@@ -135,12 +139,17 @@ export class S3Adapter extends BaseAdapter {
 
       const response = await this.client.send(command);
 
+      // Parse custom metadata from JSON if it exists
+      const customMetadata = response.Metadata?.['x-amz-meta-custom']
+        ? JSON.parse(response.Metadata['x-amz-meta-custom'])
+        : response.Metadata;
+
       return {
         name: this.extractFileName(key),
         mimeType: response.ContentType || S3Adapter.DEFAULT_MIME_TYPE,
         sizeInBytes: response.ContentLength || 0,
         uploadedAt: response.LastModified || new Date(),
-        customMetadata: response.Metadata,
+        customMetadata,
       };
     } catch (error: unknown) {
       if (typeof error === 'object' && error !== null) {

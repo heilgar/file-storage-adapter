@@ -133,15 +133,15 @@ describe('S3Adapter', () => {
   });
 
   it('supports pagination with cursor', async () => {
-    await adapter.upload('a.txt', Buffer.from('a'));
-    await adapter.upload('b.txt', Buffer.from('b'));
-    await adapter.upload('c.txt', Buffer.from('c'));
+    await adapter.upload('page/a.txt', Buffer.from('a'));
+    await adapter.upload('page/b.txt', Buffer.from('b'));
+    await adapter.upload('page/c.txt', Buffer.from('c'));
 
-    const firstPage = await adapter.list({ limit: 2 });
+    const firstPage = await adapter.list({ prefix: 'page/', limit: 2 });
     expect(firstPage.files.length).toBe(2);
     expect(firstPage.hasMore).toBe(true);
 
-    const secondPage = await adapter.list({ limit: 2, cursor: firstPage.nextCursor });
+    const secondPage = await adapter.list({ prefix: 'page/', limit: 2, cursor: firstPage.nextCursor });
     expect(secondPage.files.length).toBe(1);
     expect(secondPage.hasMore).toBe(false);
   });
