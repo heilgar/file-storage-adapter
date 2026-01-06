@@ -6,6 +6,7 @@ Framework-agnostic storage adapter library for sharing a single file management 
 
 - `@heilgar/file-storage-adapter-core` - interfaces and base adapter helpers.
 - `@heilgar/file-storage-adapter-fs` - filesystem implementation.
+- `@heilgar/file-storage-adapter-s3` - S3-compatible storage implementation (AWS S3, LocalStack).
 - `@heilgar/file-storage-adapter-vercel-blob` - Vercel Blob storage implementation.
 
 ## Install
