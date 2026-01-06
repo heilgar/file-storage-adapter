@@ -22,8 +22,10 @@
   },
   "keywords": [
     "storage",
-    "vercel",
-    "blob"
+    "s3",
+    "aws",
+    "file-storage",
+    "adapter"
   ],
   "author": "Your Name",
   "license": "MIT",
