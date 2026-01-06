@@ -278,7 +278,7 @@ export class S3Adapter extends BaseAdapter {
       // Attempt rollback: remove the copied destination object to avoid duplicates
       try {
         await this.delete(destinationKey);
-      } catch (rollbackError) {
+      } catch (_rollbackError) {
         // Log rollback failure for debugging
         // console.debug(`Rollback failed during move operation: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`);
       }

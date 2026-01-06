@@ -9,7 +9,7 @@ vi.mock('@vercel/blob', () => ({
   copy: vi.fn(),
 }));
 
-const { head, del, put, list, copy } = await import('@vercel/blob');
+const { head } = await import('@vercel/blob');
 
 describe('VercelBlobAdapter', () => {
   it('uses basePath once when downloading', async () => {
