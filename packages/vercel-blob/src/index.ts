@@ -37,7 +37,7 @@ export class VercelBlobAdapter extends BaseAdapter {
 
     // Note: Vercel Blob only supports public access as of the current API version
     // Private access is not available in the free tier
-    const _blob: PutBlobResult = await put(fullKey, buffer, {
+    const blob: PutBlobResult = await put(fullKey, buffer, {
       access: 'public',
       contentType: options?.contentType,
       addRandomSuffix: false,
@@ -49,7 +49,11 @@ export class VercelBlobAdapter extends BaseAdapter {
       mimeType: options?.contentType || VercelBlobAdapter.DEFAULT_MIME_TYPE,
       sizeInBytes: buffer.length,
       uploadedAt: new Date(),
-      customMetadata: options?.metadata,
+      customMetadata: {
+        ...options?.metadata,
+        url: blob.url,
+        pathname: blob.pathname,
+      },
     };
   }
 
