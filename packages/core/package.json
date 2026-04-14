@@ -1,6 +1,6 @@
 {
   "name": "@heilgar/file-storage-adapter-core",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "description": "Core types and interfaces for storage adapters",
   "type": "module",
   "main": "./dist/index.js",
@@ -31,8 +31,8 @@
   "author": "Oleh Hrebeniuk",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^25.0.3",
+    "@types/node": "^24.0.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.4"
   }
 }
