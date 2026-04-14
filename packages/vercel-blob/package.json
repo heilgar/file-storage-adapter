@@ -1,6 +1,6 @@
 {
   "name": "@heilgar/file-storage-adapter-vercel-blob",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "description": "Vercel Blob storage adapter",
   "type": "module",
   "main": "./dist/index.js",
@@ -34,13 +34,13 @@
   "license": "MIT",
   "dependencies": {
     "@heilgar/file-storage-adapter-core": "^1.0.2",
-    "@vercel/blob": "^0.23.4",
+    "@vercel/blob": "^2.3.3",
     "mime-types": "^3.0.2"
   },
   "devDependencies": {
     "@heilgar/file-storage-adapter-core": "*",
-    "@types/node": "^20.0.0",
+    "@types/node": "^24.0.0",
     "typescript": "^5.3.0",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.4"
   }
 }
