@@ -50,6 +50,8 @@ export class S3Adapter extends BaseAdapter {
       endpoint: config.endpoint,
       credentials: config.credentials,
       forcePathStyle: config.forcePathStyle,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
   }
 
