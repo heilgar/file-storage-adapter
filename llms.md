@@ -138,8 +138,9 @@ interface S3AdapterConfig {
 **Configuration:**
 ```typescript
 interface VercelBlobAdapterConfig {
-  token: string;        // Vercel Blob read/write token (required)
-  basePath?: string;    // Optional prefix for all keys
+  token: string;                     // Vercel Blob read/write token (required)
+  access?: 'public' | 'private';     // Defaults to 'public'. Must match the store's access mode.
+  basePath?: string;                 // Optional prefix for all keys
 }
 ```
 
@@ -147,6 +148,11 @@ interface VercelBlobAdapterConfig {
 - Vercel deployments
 - Serverless applications on Vercel
 - Edge-optimized file storage
+- Private file storage with signed-URL access (`access: 'private'`) — requires a private Blob store and `@vercel/blob` >= 2.4.0
+
+**Notes on `access`:**
+- `'public'` (default): `getSignedUrl()` returns the public blob URL; `getSignedUrlUpload()` throws (use `upload()` directly).
+- `'private'`: `getSignedUrl()` issues HMAC-signed time-limited URLs via `issueSignedToken` + `presignUrl`; `getSignedUrlUpload()` returns a presigned `PUT` URL for direct browser uploads.
 
 ## API Reference
 
@@ -545,7 +551,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
 
 ## Version History
 
-- **v1.0.4** - Current version
+- **v1.1.0** — Current version. Adds private Vercel Blob support (`access` option, signed-URL helpers).
+- **v1.0.6** — Vercel Blob upload returns metadata; minor fixes.
 - Licensed under MIT License
 - Maintained by Oleh Hrebeniuk
 
