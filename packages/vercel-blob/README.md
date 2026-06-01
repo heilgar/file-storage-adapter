@@ -10,34 +10,59 @@ npm install @heilgar/file-storage-adapter-vercel-blob
 
 ## Usage
 
+### Public store (default)
+
 ```ts
 import { VercelBlobAdapter } from '@heilgar/file-storage-adapter-vercel-blob';
 
 const adapter = new VercelBlobAdapter({
-  token: process.env.BLOB_READ_WRITE_TOKEN, // required: Vercel Blob token
+  token: process.env.BLOB_READ_WRITE_TOKEN, // required
   basePath: 'uploads',                       // optional: prefix for all keys
 });
 
-const metadata = await adapter.upload('images/logo.png', Buffer.from('...'));
+await adapter.upload('images/logo.png', Buffer.from('...'));
 const file = await adapter.download('images/logo.png');
-const list = await adapter.list({ prefix: 'images' });
 const url = await adapter.getSignedUrl('images/logo.png', { expiresIn: 3600 });
+```
+
+### Private store
+
+Requires a private Blob store ([create one with `vercel blob create-store name --access private`](https://vercel.com/docs/vercel-blob/private-storage)) and `@vercel/blob` >= 2.4.0 for signed URLs.
+
+```ts
+const adapter = new VercelBlobAdapter({
+  token: process.env.BLOB_READ_WRITE_TOKEN,
+  access: 'private',
+});
+
+await adapter.upload('docs/contract.pdf', buffer, { contentType: 'application/pdf' });
+
+// Reads through @vercel/blob `get()` with auth.
+const file = await adapter.download('docs/contract.pdf');
+
+// Time-limited signed URL via issueSignedToken + presignUrl.
+const url = await adapter.getSignedUrl('docs/contract.pdf', { expiresIn: 600 });
+
+// Signed PUT URL for direct browser uploads (private only).
+const { url: putUrl, headers } = await adapter.getSignedUrlUpload('docs/contract.pdf', {
+  expiresIn: 600,
+  contentType: 'application/pdf',
+});
 ```
 
 ## Configuration
 
-**Config type:**
 ```ts
 interface VercelBlobAdapterConfig {
-  token: string;      // Vercel Blob read/write token
-  basePath?: string;  // Optional prefix for all keys
+  token: string;                     // Vercel Blob read/write token
+  access?: 'public' | 'private';     // default: 'public'. Must match the store's access mode.
+  basePath?: string;                 // optional key prefix
 }
 ```
 
 ## Notes
 
-- `token` (required) is your Vercel Blob read/write token
-- `basePath` (optional) prefixes all keys
-- All files are uploaded with `public` access (private is not available)
-- Range downloads are not supported
-- Signed upload URLs are not supported - use `upload()` method directly
+- `access` must match the Blob store's access mode in Vercel — mixing modes will fail at the API.
+- Public stores: `getSignedUrl()` returns the underlying public blob URL; `getSignedUrlUpload()` throws (use `upload()` directly).
+- Private stores: `getSignedUrl()` and `getSignedUrlUpload()` produce HMAC-signed URLs with `validUntil = now + expiresIn s`.
+- Range downloads are not supported.
