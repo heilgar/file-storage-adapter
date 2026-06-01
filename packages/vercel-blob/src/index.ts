@@ -7,24 +7,46 @@ import {
   type ListOptions,
   type ListResult,
   type SignedUrlOptions,
+  type SignedUrlUploadResult,
   type UploadOptions,
 } from '@heilgar/file-storage-adapter-core';
-import { copy, del, head, type ListBlobResult, list, type PutBlobResult, put } from '@vercel/blob';
+import {
+  copy,
+  del,
+  get,
+  head,
+  issueSignedToken,
+  type ListBlobResult,
+  list,
+  type PutBlobResult,
+  presignUrl,
+  put,
+} from '@vercel/blob';
 import { lookup } from 'mime-types';
+
+export type VercelBlobAccess = 'public' | 'private';
 
 export interface VercelBlobAdapterConfig extends FileStorageAdapterConfig {
   token: string;
+  /**
+   * Access mode of the Blob store. Must match how the store was created in Vercel.
+   * @defaultValue 'public'
+   */
+  access?: VercelBlobAccess;
 }
 
 export class VercelBlobAdapter extends BaseAdapter {
   private static readonly DEFAULT_LIST_LIMIT = 1000;
   private static readonly DEFAULT_MIME_TYPE = 'application/octet-stream';
+  private static readonly DEFAULT_SIGNED_URL_EXPIRATION = 3600;
 
   private token: string;
+  private access: VercelBlobAccess;
 
   constructor(config: VercelBlobAdapterConfig) {
     super(config);
     this.token = config.token;
+    this.access = config.access ?? 'public';
   }
 
   async upload(
@@ -35,10 +57,8 @@ export class VercelBlobAdapter extends BaseAdapter {
     const fullKey = this.getFullKey(key);
     const buffer = await this.toBuffer(file);
 
-    // Note: Vercel Blob only supports public access as of the current API version
-    // Private access is not available in the free tier
     const blob: PutBlobResult = await put(fullKey, buffer, {
-      access: 'public',
+      access: this.access,
       contentType: options?.contentType,
       addRandomSuffix: false,
       token: this.token,
@@ -71,11 +91,20 @@ export class VercelBlobAdapter extends BaseAdapter {
       throw new Error(`File not found: ${key}`);
     }
 
-    // Get the blob URL and fetch content
-    const blobData = await head(fullKey, { token: this.token });
-    const response = await fetch(blobData.url);
-    const arrayBuffer = await response.arrayBuffer();
-    const content = Buffer.from(arrayBuffer);
+    let content: Buffer;
+    if (this.access === 'private') {
+      const result = await get(fullKey, { access: 'private', token: this.token });
+      if (!result || result.statusCode !== 200) {
+        throw new Error(`File not found: ${key}`);
+      }
+      const arrayBuffer = await new Response(result.stream).arrayBuffer();
+      content = Buffer.from(arrayBuffer);
+    } else {
+      const blobData = await head(fullKey, { token: this.token });
+      const response = await fetch(blobData.url);
+      const arrayBuffer = await response.arrayBuffer();
+      content = Buffer.from(arrayBuffer);
+    }
 
     return {
       ...metadata,
@@ -95,9 +124,7 @@ export class VercelBlobAdapter extends BaseAdapter {
         uploadedAt: new Date(blob.uploadedAt),
       };
     } catch (error) {
-      // File not found or access denied
       if (error instanceof Error && !error.message.includes('404')) {
-        // Log unexpected errors for debugging
         // console.debug(`Failed to get metadata for key "${key}": ${error.message}`);
       }
       return null;
@@ -110,9 +137,7 @@ export class VercelBlobAdapter extends BaseAdapter {
       await del(fullKey, { token: this.token });
       return true;
     } catch (error) {
-      // File not found or access denied
       if (error instanceof Error && !error.message.includes('404')) {
-        // Log unexpected errors for debugging
         // console.debug(`Failed to delete file at key "${key}": ${error.message}`);
       }
       return false;
@@ -149,19 +174,62 @@ export class VercelBlobAdapter extends BaseAdapter {
     };
   }
 
-  async getSignedUrl(key: string, _options: SignedUrlOptions): Promise<string> {
+  async getSignedUrl(key: string, options: SignedUrlOptions): Promise<string> {
     const fullKey = this.getFullKey(key);
-    const blob = await head(fullKey, { token: this.token });
-    return blob.url;
+
+    if (this.access === 'public') {
+      const blob = await head(fullKey, { token: this.token });
+      return blob.url;
+    }
+
+    const expiresInSec = options.expiresIn || VercelBlobAdapter.DEFAULT_SIGNED_URL_EXPIRATION;
+    const validUntil = Date.now() + expiresInSec * 1000;
+    const signedToken = await issueSignedToken({
+      pathname: fullKey,
+      operations: ['get'],
+      validUntil,
+      token: this.token,
+    });
+    const { presignedUrl } = await presignUrl(signedToken, {
+      operation: 'get',
+      pathname: fullKey,
+      access: 'private',
+      validUntil,
+    });
+    return presignedUrl;
   }
 
-  async getSignedUrlUpload(
-    _key: string,
-    _options: SignedUrlOptions,
-  ): Promise<{ url: string; headers?: Record<string, string> }> {
-    throw new Error(
-      'Signed upload URLs are not supported for Vercel Blob adapter. Use the upload() method directly.',
-    );
+  async getSignedUrlUpload(key: string, options: SignedUrlOptions): Promise<SignedUrlUploadResult> {
+    if (this.access === 'public') {
+      throw new Error(
+        'Signed upload URLs are not supported for public Vercel Blob stores. Use the upload() method directly.',
+      );
+    }
+
+    const fullKey = this.getFullKey(key);
+    const expiresInSec = options.expiresIn || VercelBlobAdapter.DEFAULT_SIGNED_URL_EXPIRATION;
+    const validUntil = Date.now() + expiresInSec * 1000;
+    const allowedContentTypes = options.contentType ? [options.contentType] : undefined;
+
+    const signedToken = await issueSignedToken({
+      pathname: fullKey,
+      operations: ['put'],
+      validUntil,
+      allowedContentTypes,
+      token: this.token,
+    });
+    const { presignedUrl } = await presignUrl(signedToken, {
+      operation: 'put',
+      pathname: fullKey,
+      access: 'private',
+      validUntil,
+      allowedContentTypes,
+    });
+
+    return {
+      url: presignedUrl,
+      headers: options.contentType ? { 'Content-Type': options.contentType } : undefined,
+    };
   }
 
   async copy(sourceKey: string, destinationKey: string): Promise<FileMetadata> {
@@ -169,11 +237,10 @@ export class VercelBlobAdapter extends BaseAdapter {
     const fullDestKey = this.getFullKey(destinationKey);
 
     await copy(fullSourceKey, fullDestKey, {
-      access: 'public',
+      access: this.access,
       token: this.token,
     });
 
-    // After copying, we need to get the metadata of the new file
     const metadata = await this.getMetadata(destinationKey);
     if (!metadata) {
       throw new Error(`Failed to copy file from "${sourceKey}" to "${destinationKey}"`);
@@ -187,12 +254,10 @@ export class VercelBlobAdapter extends BaseAdapter {
 
     const deleted = await this.delete(sourceKey);
     if (!deleted) {
-      // Source deletion failed - attempt rollback
       try {
         await this.delete(destinationKey);
       } catch (_rollbackError) {
-        // Log rollback failure for debugging
-        // console.debug(`Rollback failed during move operation: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`);
+        // console.debug(`Rollback failed during move operation: ...`);
       }
       throw new Error(
         `Failed to delete source file "${sourceKey}" after copying to "${destinationKey}"`,
