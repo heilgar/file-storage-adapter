@@ -123,4 +123,85 @@ describe('FsAdapter', () => {
     expect(await adapter.exists('source.txt')).toBe(false);
     expect(await adapter.exists('moved.txt')).toBe(true);
   });
+
+  describe('deleteByPrefix', () => {
+    it('deletes everything under a prefix beyond a single batch', async () => {
+      const adapter = new FsAdapter({ rootDir });
+      for (let i = 0; i < 7; i++) {
+        await adapter.upload(`bulk/file-${i}.txt`, Buffer.from(`x${i}`));
+      }
+
+      const { deleted } = await adapter.deleteByPrefix('bulk/', { batch: 3 });
+
+      expect(deleted).toBe(7);
+      expect((await adapter.list({ prefix: 'bulk/' })).files).toHaveLength(0);
+    });
+
+    it('honours limit and stops once reached', async () => {
+      const adapter = new FsAdapter({ rootDir });
+      for (let i = 0; i < 5; i++) {
+        await adapter.upload(`cap/file-${i}.txt`, Buffer.from(`x${i}`));
+      }
+
+      const { deleted } = await adapter.deleteByPrefix('cap/', { limit: 2 });
+
+      expect(deleted).toBe(2);
+      expect((await adapter.list({ prefix: 'cap/' })).files).toHaveLength(3);
+    });
+
+    it('is idempotent: re-running returns deleted: 0', async () => {
+      const adapter = new FsAdapter({ rootDir });
+      await adapter.upload('again/a.txt', Buffer.from('a'));
+      await adapter.upload('again/b.txt', Buffer.from('b'));
+
+      const first = await adapter.deleteByPrefix('again/');
+      const second = await adapter.deleteByPrefix('again/');
+
+      expect(first.deleted).toBe(2);
+      expect(second.deleted).toBe(0);
+    });
+
+    it.each([
+      ['empty string', ''],
+      ['slash', '/'],
+      ['dot', '.'],
+      ['dot-slash', './'],
+      ['dot-dot', '..'],
+      ['foo/..', 'foo/..'],
+      ['./.', './.'],
+      ['./bar/../..', './bar/../..'],
+    ])('rejects %s as prefix to prevent accidental wipes', async (_label, prefix) => {
+      const adapter = new FsAdapter({ rootDir });
+      // Tight regex anchored on the guard message — confirms the guard fired
+      // (not some unrelated downstream error).
+      await expect(adapter.deleteByPrefix(prefix)).rejects.toThrow(
+        /deleteByPrefix requires a non-empty prefix/,
+      );
+    });
+
+    it.each([
+      ['zero', 0],
+      ['negative', -1],
+      ['fractional', 0.5],
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+    ])('rejects batch = %s', async (_label, batch) => {
+      const adapter = new FsAdapter({ rootDir });
+      await expect(adapter.deleteByPrefix('foo/', { batch })).rejects.toThrow(
+        /deleteByPrefix batch must be a positive integer/,
+      );
+    });
+
+    it.each([
+      ['negative', -1],
+      ['fractional', 1.5],
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+    ])('rejects limit = %s', async (_label, limit) => {
+      const adapter = new FsAdapter({ rootDir });
+      await expect(adapter.deleteByPrefix('foo/', { limit })).rejects.toThrow(
+        /deleteByPrefix limit must be a non-negative integer/,
+      );
+    });
+  });
 });

@@ -1,9 +1,35 @@
 services:
-  localstack:
-    image: localstack/localstack:latest
+  floci:
+    image: floci/floci:latest
     env_file:
       - .env.dev
     ports:
       - "4566:4566"
+
+  create-bucket:
+    image: amazon/aws-cli:latest
+    depends_on:
+      - floci
+    env_file:
+      - .env.dev
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        until aws --endpoint-url=http://floci:4566 s3 ls >/dev/null 2>&1; do
+          echo "waiting for floci..."
+          sleep 2
+        done
+        aws --endpoint-url=http://floci:4566 s3 mb s3://local-storage-bucket || true
+        echo "local-storage-bucket ready"
+
+  vercel-blob:
+    image: ghcr.io/payloadcms/vercel-blob-emulator:latest
+    ports:
+      - "3100:3000"
+    environment:
+      EMULATOR_BASE_URL: http://localhost:3100
     volumes:
-      - ./docker/localstack-init.sh:/etc/localstack/init/ready.d/init.sh
+      - vercel_blob_data:/data
+
+volumes:
+  vercel_blob_data:

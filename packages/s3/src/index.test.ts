@@ -28,7 +28,7 @@ describe('S3Adapter', () => {
     // Clean up any existing test files
     const files = await adapter.list();
     for (const file of files.files) {
-      await adapter.delete(file.name);
+      await adapter.delete(file.key);
     }
   });
 
@@ -37,7 +37,7 @@ describe('S3Adapter', () => {
     try {
       const files = await adapter.list();
       for (const file of files.files) {
-        await adapter.delete(file.name);
+        await adapter.delete(file.key);
       }
     } catch {
       // Ignore cleanup errors
@@ -245,5 +245,102 @@ describe('S3Adapter', () => {
 
     const metadata = await adapter.getMetadata('cached.txt');
     expect(metadata).not.toBeNull();
+  });
+
+  describe('deleteByPrefix', () => {
+    it('paginates across multiple list pages and deletes everything under the prefix', async () => {
+      for (let i = 0; i < 7; i++) {
+        await adapter.upload(`bulk/file-${i}.txt`, Buffer.from(`x${i}`));
+      }
+
+      const { deleted } = await adapter.deleteByPrefix('bulk/', { batch: 3 });
+
+      expect(deleted).toBe(7);
+      expect((await adapter.list({ prefix: 'bulk/' })).files).toHaveLength(0);
+    });
+
+    it('honours limit and stops once reached', async () => {
+      for (let i = 0; i < 5; i++) {
+        await adapter.upload(`cap/file-${i}.txt`, Buffer.from(`x${i}`));
+      }
+
+      const { deleted } = await adapter.deleteByPrefix('cap/', { limit: 2 });
+
+      expect(deleted).toBe(2);
+      expect((await adapter.list({ prefix: 'cap/' })).files).toHaveLength(3);
+    });
+
+    it('is idempotent: re-running returns deleted: 0', async () => {
+      await adapter.upload('again/a.txt', Buffer.from('a'));
+      await adapter.upload('again/b.txt', Buffer.from('b'));
+
+      const first = await adapter.deleteByPrefix('again/');
+      const second = await adapter.deleteByPrefix('again/');
+
+      expect(first.deleted).toBe(2);
+      expect(second.deleted).toBe(0);
+    });
+
+    it('round-trips list().key through delete() under a basePath', async () => {
+      const scoped = new S3Adapter({
+        bucket: testBucket,
+        region: 'us-east-1',
+        endpoint: 'http://localhost:4566',
+        credentials: { accessKeyId: 'dev', secretAccessKey: 'dev' },
+        forcePathStyle: true,
+        basePath: 'tenant-a',
+      });
+
+      try {
+        await scoped.upload('scoped/a.txt', Buffer.from('a'));
+        await scoped.upload('scoped/b.txt', Buffer.from('b'));
+
+        const { deleted } = await scoped.deleteByPrefix('scoped/');
+
+        expect(deleted).toBe(2);
+        expect((await scoped.list({ prefix: 'scoped/' })).files).toHaveLength(0);
+      } finally {
+        const stragglers = await scoped.list({ prefix: 'scoped/' });
+        for (const f of stragglers.files) await scoped.delete(f.key);
+      }
+    });
+
+    // Guard tests verify the input checks fire before any SDK call — the tight
+    // regex anchored on the guard message rules out any other downstream error.
+    it.each([
+      ['empty', ''],
+      ['slash', '/'],
+      ['dot', '.'],
+      ['dot-slash', './'],
+      ['dot-dot', '..'],
+      ['foo/..', 'foo/..'],
+    ])('rejects %s as prefix', async (_label, prefix) => {
+      await expect(adapter.deleteByPrefix(prefix)).rejects.toThrow(
+        /deleteByPrefix requires a non-empty prefix/,
+      );
+    });
+
+    it.each([
+      ['zero', 0],
+      ['negative', -1],
+      ['fractional', 0.5],
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+    ])('rejects batch = %s', async (_label, batch) => {
+      await expect(adapter.deleteByPrefix('foo/', { batch })).rejects.toThrow(
+        /deleteByPrefix batch must be a positive integer/,
+      );
+    });
+
+    it.each([
+      ['negative', -1],
+      ['fractional', 1.5],
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+    ])('rejects limit = %s', async (_label, limit) => {
+      await expect(adapter.deleteByPrefix('foo/', { limit })).rejects.toThrow(
+        /deleteByPrefix limit must be a non-negative integer/,
+      );
+    });
   });
 });

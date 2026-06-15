@@ -1,6 +1,7 @@
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
@@ -10,6 +11,8 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   BaseAdapter,
+  type DeleteByPrefixOptions,
+  type DeleteByPrefixResult,
   type DownloadOptions,
   type FileMetadata,
   type FileObject,
@@ -85,6 +88,7 @@ export class S3Adapter extends BaseAdapter {
 
     return {
       name: this.extractFileName(key),
+      key,
       mimeType: contentType,
       sizeInBytes: buffer.length,
       uploadedAt: new Date(),
@@ -123,6 +127,7 @@ export class S3Adapter extends BaseAdapter {
 
     return {
       name: this.extractFileName(key),
+      key,
       mimeType: response.ContentType || S3Adapter.DEFAULT_MIME_TYPE,
       sizeInBytes: response.ContentLength || content.length,
       uploadedAt: response.LastModified || new Date(),
@@ -148,6 +153,7 @@ export class S3Adapter extends BaseAdapter {
 
       return {
         name: this.extractFileName(key),
+        key,
         mimeType: response.ContentType || S3Adapter.DEFAULT_MIME_TYPE,
         sizeInBytes: response.ContentLength || 0,
         uploadedAt: response.LastModified || new Date(),
@@ -203,12 +209,16 @@ export class S3Adapter extends BaseAdapter {
 
     const response = await this.client.send(command);
 
-    const files: FileMetadata[] = (response.Contents || []).map((obj) => ({
-      name: this.extractFileName(this.stripBasePath(obj.Key || '')),
-      mimeType: lookup(obj.Key || '') || S3Adapter.DEFAULT_MIME_TYPE,
-      sizeInBytes: obj.Size || 0,
-      uploadedAt: obj.LastModified || new Date(),
-    }));
+    const files: FileMetadata[] = (response.Contents || []).map((obj) => {
+      const strippedKey = this.stripBasePath(obj.Key || '');
+      return {
+        name: this.extractFileName(strippedKey),
+        key: strippedKey,
+        mimeType: lookup(obj.Key || '') || S3Adapter.DEFAULT_MIME_TYPE,
+        sizeInBytes: obj.Size || 0,
+        uploadedAt: obj.LastModified || new Date(),
+      };
+    });
 
     return {
       files,
@@ -289,5 +299,61 @@ export class S3Adapter extends BaseAdapter {
       throw new Error(`Failed to move file from "${sourceKey}" to "${destinationKey}": ${message}`);
     }
     return metadata;
+  }
+
+  async deleteByPrefix(
+    prefix: string,
+    opts: DeleteByPrefixOptions = {},
+  ): Promise<DeleteByPrefixResult> {
+    this.assertDeleteByPrefixPrefix(prefix);
+    this.assertDeleteByPrefixOptions(opts);
+    if (opts.limit === 0) return { deleted: 0 };
+
+    const fullPrefix = this.getFullKey(prefix);
+    let cursor: string | undefined;
+    let deleted = 0;
+
+    do {
+      const pageLimit = this.nextPageLimit(deleted, opts, 100);
+
+      const listResponse = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: fullPrefix,
+          MaxKeys: pageLimit,
+          ContinuationToken: cursor,
+        }),
+      );
+
+      const objects = (listResponse.Contents || [])
+        .filter((obj): obj is { Key: string } => !!obj.Key)
+        .map((obj) => ({ Key: obj.Key }));
+
+      if (objects.length > 0) {
+        const deleteResponse = await this.client.send(
+          new DeleteObjectsCommand({
+            Bucket: this.bucket,
+            Delete: { Objects: objects, Quiet: true },
+          }),
+        );
+        deleted += Math.max(0, objects.length - (deleteResponse.Errors?.length ?? 0));
+      }
+
+      if (listResponse.IsTruncated) {
+        if (!listResponse.NextContinuationToken) {
+          // Truncate caller-supplied prefix to avoid leaking PII into error logs.
+          const safePrefix = prefix.length > 32 ? `${prefix.slice(0, 32)}…` : prefix;
+          throw new Error(
+            `S3 reported IsTruncated=true but returned no NextContinuationToken for deleteByPrefix(bucket=${this.bucket}, prefix=${safePrefix}); refusing to silently truncate`,
+          );
+        }
+        cursor = listResponse.NextContinuationToken;
+      } else {
+        cursor = undefined;
+      }
+      if (opts.limit !== undefined && deleted >= opts.limit) break;
+    } while (cursor);
+
+    return { deleted };
   }
 }

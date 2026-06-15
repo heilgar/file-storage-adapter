@@ -1,10 +1,14 @@
 {
   "name": "@heilgar/file-storage-adapter-vercel-blob",
-  "version": "1.1.0",
-  "description": "Vercel Blob storage adapter",
+  "version": "2.0.0",
+  "description": "Vercel Blob file storage adapter for Node.js (public + private stores, signed URLs) — unified API shared with the filesystem and AWS S3 adapters.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "homepage": "https://github.com/heilgar/file-storage-adapter#readme",
+  "bugs": {
+    "url": "https://github.com/heilgar/file-storage-adapter/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/heilgar/file-storage-adapter"
@@ -26,13 +30,23 @@
   },
   "keywords": [
     "storage",
+    "file-storage",
+    "object-storage",
     "vercel",
-    "blob"
+    "vercel-blob",
+    "blob",
+    "presigned-url",
+    "signed-url",
+    "adapter",
+    "adapter-pattern",
+    "typescript",
+    "nodejs",
+    "edge"
   ],
-  "author": "Your Name",
+  "author": "heilgar",
   "license": "MIT",
   "dependencies": {
-    "@heilgar/file-storage-adapter-core": "^1.0.2",
+    "@heilgar/file-storage-adapter-core": "^2.0.0",
     "@vercel/blob": "^2.4.0",
     "mime-types": "^3.0.2"
   },
