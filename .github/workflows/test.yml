@@ -10,24 +10,44 @@ jobs:
   test:
     runs-on: ubuntu-latest
     services:
-      localstack:
-        image: localstack/localstack:3
+      floci:
+        image: floci/floci:latest
         ports:
           - 4566:4566
+      vercel-blob:
+        image: ghcr.io/payloadcms/vercel-blob-emulator:latest
+        ports:
+          - 3100:3000
         env:
-          SERVICES: s3
-          DEBUG: 1
-        options: >-
-          --health-cmd "awslocal s3 ls || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          EMULATOR_BASE_URL: http://localhost:3100
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Create S3 bucket in LocalStack
+      - name: Wait for Floci
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:4566/ >/dev/null; then
+              echo "floci is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "floci did not start in time" >&2
+          exit 1
+      - name: Wait for Vercel Blob emulator
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:3100/api/blob >/dev/null; then
+              echo "vercel-blob emulator is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "vercel-blob emulator did not start in time" >&2
+          exit 1
+      - name: Create S3 bucket in Floci
         run: aws --endpoint-url=http://localhost:4566 s3 mb s3://local-storage-bucket
         env:
           AWS_ACCESS_KEY_ID: dev
