@@ -1,5 +1,7 @@
 import { posix as pathPosix } from 'node:path';
 import type {
+  DeleteByPrefixOptions,
+  DeleteByPrefixResult,
   DownloadOptions,
   FileMetadata,
   FileObject,
@@ -97,6 +99,39 @@ export abstract class BaseAdapter implements FileStorageAdapter {
     return normalizedKey.split('/').pop() || normalizedKey;
   }
 
+  protected assertDeleteByPrefixPrefix(prefix: string): void {
+    const message =
+      'deleteByPrefix requires a non-empty prefix to avoid wiping the entire scope';
+    if (!prefix) throw new Error(message);
+    // Normalize so `.`, `./`, `./.`, `foo/..`, `..` etc. — which would all collapse
+    // to the basePath (or escape it) when joined via pathPosix.join — are rejected.
+    const normalized = pathPosix.normalize(prefix);
+    // Strip trailing slash so './' is treated equivalently to '.'.
+    const head = normalized.replace(/\/$/, '');
+    if (head === '' || head === '.' || head === '..' || normalized.startsWith('../')) {
+      throw new Error(message);
+    }
+  }
+
+  protected assertDeleteByPrefixOptions(opts: DeleteByPrefixOptions): void {
+    if (opts.batch !== undefined && (!Number.isInteger(opts.batch) || opts.batch <= 0)) {
+      throw new Error('deleteByPrefix batch must be a positive integer');
+    }
+    if (opts.limit !== undefined && (!Number.isInteger(opts.limit) || opts.limit < 0)) {
+      throw new Error('deleteByPrefix limit must be a non-negative integer');
+    }
+  }
+
+  protected nextPageLimit(
+    deleted: number,
+    opts: DeleteByPrefixOptions,
+    defaultBatch: number,
+  ): number {
+    const batch = opts.batch ?? defaultBatch;
+    if (opts.limit === undefined) return batch;
+    return Math.min(batch, Math.max(0, opts.limit - deleted));
+  }
+
   abstract upload(
     key: string,
     file: Buffer | NodeJS.ReadableStream | File,
@@ -114,4 +149,8 @@ export abstract class BaseAdapter implements FileStorageAdapter {
   ): Promise<SignedUrlUploadResult>;
   abstract copy(sourceKey: string, destinationKey: string): Promise<FileMetadata>;
   abstract move(sourceKey: string, destinationKey: string): Promise<FileMetadata>;
+  abstract deleteByPrefix(
+    prefix: string,
+    opts?: DeleteByPrefixOptions,
+  ): Promise<DeleteByPrefixResult>;
 }

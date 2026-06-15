@@ -1,5 +1,7 @@
 import {
   BaseAdapter,
+  type DeleteByPrefixOptions,
+  type DeleteByPrefixResult,
   type DownloadOptions,
   type FileMetadata,
   type FileObject,
@@ -66,6 +68,7 @@ export class VercelBlobAdapter extends BaseAdapter {
 
     return {
       name: this.extractFileName(key),
+      key,
       mimeType: options?.contentType || VercelBlobAdapter.DEFAULT_MIME_TYPE,
       sizeInBytes: buffer.length,
       uploadedAt: new Date(),
@@ -119,6 +122,7 @@ export class VercelBlobAdapter extends BaseAdapter {
 
       return {
         name: this.extractFileName(key),
+        key,
         mimeType: blob.contentType || VercelBlobAdapter.DEFAULT_MIME_TYPE,
         sizeInBytes: blob.size,
         uploadedAt: new Date(blob.uploadedAt),
@@ -160,12 +164,16 @@ export class VercelBlobAdapter extends BaseAdapter {
       token: this.token,
     });
 
-    const files: FileMetadata[] = result.blobs.map((blob) => ({
-      name: this.extractFileName(blob.pathname),
-      mimeType: lookup(blob.pathname) || VercelBlobAdapter.DEFAULT_MIME_TYPE,
-      sizeInBytes: blob.size,
-      uploadedAt: new Date(blob.uploadedAt),
-    }));
+    const files: FileMetadata[] = result.blobs.map((blob) => {
+      const strippedKey = this.stripBasePath(blob.pathname);
+      return {
+        name: this.extractFileName(strippedKey),
+        key: strippedKey,
+        mimeType: lookup(blob.pathname) || VercelBlobAdapter.DEFAULT_MIME_TYPE,
+        sizeInBytes: blob.size,
+        uploadedAt: new Date(blob.uploadedAt),
+      };
+    });
 
     return {
       files,
@@ -265,5 +273,55 @@ export class VercelBlobAdapter extends BaseAdapter {
     }
 
     return metadata;
+  }
+
+  async deleteByPrefix(
+    prefix: string,
+    opts: DeleteByPrefixOptions = {},
+  ): Promise<DeleteByPrefixResult> {
+    this.assertDeleteByPrefixPrefix(prefix);
+    this.assertDeleteByPrefixOptions(opts);
+    if (opts.limit === 0) return { deleted: 0 };
+
+    const fullPrefix = this.getFullKey(prefix);
+    let cursor: string | undefined;
+    let deleted = 0;
+
+    do {
+      const pageLimit = this.nextPageLimit(deleted, opts, 100);
+
+      const page = await list({
+        prefix: fullPrefix,
+        limit: pageLimit,
+        cursor,
+        token: this.token,
+      });
+
+      if (page.blobs.length > 0) {
+        // Use pathname for consistency with delete()/upload(); del() also accepts URLs
+        // but mixing identifier types across the adapter risks divergence.
+        await del(
+          page.blobs.map((b) => b.pathname),
+          { token: this.token },
+        );
+        deleted += page.blobs.length;
+      }
+
+      if (page.hasMore) {
+        if (!page.cursor) {
+          // Truncate caller-supplied prefix to avoid leaking PII into error logs.
+          const safePrefix = prefix.length > 32 ? `${prefix.slice(0, 32)}…` : prefix;
+          throw new Error(
+            `Vercel Blob reported hasMore=true but returned no cursor for deleteByPrefix(prefix=${safePrefix}); refusing to silently truncate`,
+          );
+        }
+        cursor = page.cursor;
+      } else {
+        cursor = undefined;
+      }
+      if (opts.limit !== undefined && deleted >= opts.limit) break;
+    } while (cursor);
+
+    return { deleted };
   }
 }

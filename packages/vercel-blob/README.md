@@ -60,9 +60,30 @@ interface VercelBlobAdapterConfig {
 }
 ```
 
+## Bulk delete
+
+```ts
+// Remove everything under a folder-like prefix.
+const { deleted } = await adapter.deleteByPrefix('exports/');
+
+// Bound how much each list() page returns and how many keys total to delete.
+await adapter.deleteByPrefix('exports/', { batch: 50, limit: 500 });
+```
+
+The method paginates through `list()` with `hasMore`/`cursor` and is safe to retry —
+`@vercel/blob`'s underlying `del()` no-ops on already-deleted keys.
+
 ## Notes
 
 - `access` must match the Blob store's access mode in Vercel — mixing modes will fail at the API.
 - Public stores: `getSignedUrl()` returns the underlying public blob URL; `getSignedUrlUpload()` throws (use `upload()` directly).
 - Private stores: `getSignedUrl()` and `getSignedUrlUpload()` produce HMAC-signed URLs with `validUntil = now + expiresIn s`.
 - Range downloads are not supported.
+
+## Breaking changes in 2.0.0
+
+- `FileMetadata` now includes a required `key` field. `list()` results expose
+  `key` with `basePath` stripped, so the same value round-trips with `upload()`,
+  `delete()`, and `download()`. Consumers reading only `name` keep working;
+  typed code constructing/asserting on `FileMetadata` needs `key`.
+- New `deleteByPrefix(prefix, opts?)` method on the adapter — see above.

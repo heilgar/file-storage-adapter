@@ -3,6 +3,8 @@ import { Readable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { BaseAdapter } from './base-adapter';
 import type {
+  DeleteByPrefixOptions,
+  DeleteByPrefixResult,
   DownloadOptions,
   FileMetadata,
   FileObject,
@@ -49,6 +51,12 @@ class TestAdapter extends BaseAdapter {
     throw new Error('not implemented');
   }
   async move(_sourceKey: string, _destinationKey: string): Promise<FileMetadata> {
+    throw new Error('not implemented');
+  }
+  async deleteByPrefix(
+    _prefix: string,
+    _opts?: DeleteByPrefixOptions,
+  ): Promise<DeleteByPrefixResult> {
     throw new Error('not implemented');
   }
 }

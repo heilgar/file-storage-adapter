@@ -1,8 +1,11 @@
+import type { Dirent } from 'node:fs';
 import { createReadStream, createWriteStream, promises as fs } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import {
   BaseAdapter,
+  type DeleteByPrefixOptions,
+  type DeleteByPrefixResult,
   type DownloadOptions,
   type FileMetadata,
   type FileObject,
@@ -67,6 +70,7 @@ export class FsAdapter extends BaseAdapter {
     const stat = await fs.stat(filePath);
     const metadata: FileMetadata = {
       name: this.extractFileName(key),
+      key,
       mimeType: options?.contentType || lookup(key) || 'application/octet-stream',
       sizeInBytes: stat.size,
       uploadedAt: new Date(),
@@ -104,12 +108,15 @@ export class FsAdapter extends BaseAdapter {
       const metaContent = await fs.readFile(metadataPath, 'utf-8');
       metadata = JSON.parse(metaContent);
       metadata.uploadedAt = new Date(metadata.uploadedAt);
+      // Older metadata files written before 2.0.0 don't include `key`.
+      if (!metadata.key) metadata.key = key;
     } catch (_metadataError) {
       // Fallback to file stats if metadata doesn't exist
       try {
         const stats = await fs.stat(filePath);
         metadata = {
           name: this.extractFileName(key),
+          key,
           mimeType: lookup(key) || 'application/octet-stream',
           sizeInBytes: stats.size,
           uploadedAt: stats.mtime,
@@ -133,6 +140,8 @@ export class FsAdapter extends BaseAdapter {
       const content = await fs.readFile(metadataPath, 'utf-8');
       const metadata = JSON.parse(content);
       metadata.uploadedAt = new Date(metadata.uploadedAt);
+      // Older metadata files written before 2.0.0 don't include `key`.
+      if (!metadata.key) metadata.key = key;
       return metadata;
     } catch {
       // Try to get basic metadata from file stats
@@ -141,6 +150,7 @@ export class FsAdapter extends BaseAdapter {
         const stats = await fs.stat(filePath);
         return {
           name: this.extractFileName(key),
+          key,
           mimeType: lookup(key) || 'application/octet-stream',
           sizeInBytes: stats.size,
           uploadedAt: stats.mtime,
@@ -300,5 +310,49 @@ export class FsAdapter extends BaseAdapter {
     const metadata = await this.copy(sourceKey, destinationKey);
     await this.delete(sourceKey);
     return metadata;
+  }
+
+  async deleteByPrefix(
+    prefix: string,
+    opts: DeleteByPrefixOptions = {},
+  ): Promise<DeleteByPrefixResult> {
+    this.assertDeleteByPrefixPrefix(prefix);
+    this.assertDeleteByPrefixOptions(opts);
+    if (opts.limit === 0) return { deleted: 0 };
+
+    // `opts.batch` is ignored on FS: there's no cursored list and we walk the
+    // tree once instead of re-listing per page.
+    const limit = opts.limit ?? Number.POSITIVE_INFINITY;
+    const searchDir = join(this.rootDir, this.getFullKey(prefix));
+    let deleted = 0;
+
+    const walk = async (dir: string): Promise<void> => {
+      if (deleted >= limit) return;
+      let entries: Dirent[];
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+
+      for (const entry of entries) {
+        if (deleted >= limit) return;
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await walk(full);
+        } else if (this.isDataFile(entry.name)) {
+          try {
+            await fs.unlink(full);
+            await fs.unlink(`${full}${FsAdapter.METADATA_FILE_EXTENSION}`).catch(() => {});
+            deleted += 1;
+          } catch {
+            // Skip undeletable files (permissions, race) but keep iterating.
+          }
+        }
+      }
+    };
+
+    await walk(searchDir);
+    return { deleted };
   }
 }

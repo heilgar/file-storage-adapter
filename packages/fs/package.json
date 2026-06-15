@@ -1,10 +1,14 @@
 {
   "name": "@heilgar/file-storage-adapter-fs",
-  "version": "1.1.0",
-  "description": "Filesystem storage adapter",
+  "version": "2.0.0",
+  "description": "Local filesystem file storage adapter for Node.js — unified API shared with the AWS S3 and Vercel Blob adapters.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "homepage": "https://github.com/heilgar/file-storage-adapter#readme",
+  "bugs": {
+    "url": "https://github.com/heilgar/file-storage-adapter/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/heilgar/file-storage-adapter"
@@ -26,16 +30,24 @@
   },
   "keywords": [
     "storage",
+    "file-storage",
     "filesystem",
-    "files"
+    "fs",
+    "local-storage",
+    "disk-storage",
+    "node-fs",
+    "adapter",
+    "adapter-pattern",
+    "typescript",
+    "nodejs"
   ],
-  "author": "Oleh Hrebeniuk",
+  "author": "heilgar",
   "license": "MIT",
   "devDependencies": {
     "@types/mime-types": "^3.0.1"
   },
   "dependencies": {
-    "@heilgar/file-storage-adapter-core": "^1.0.1",
+    "@heilgar/file-storage-adapter-core": "^2.0.0",
     "mime-types": "^3.0.2"
   }
 }

@@ -1,9 +1,23 @@
 export interface FileMetadata {
+  /** Last path segment of the key. Kept for backwards compatibility. */
   name: string;
+  /** Full storage key — what `delete()` and `download()` accept. */
+  key: string;
   mimeType: string;
   sizeInBytes: number;
   uploadedAt: Date;
   customMetadata?: Record<string, unknown>;
+}
+
+export interface DeleteByPrefixOptions {
+  /** Max keys requested per underlying list() page. Default 100. */
+  batch?: number;
+  /** Cap on total keys to delete. Default unbounded. */
+  limit?: number;
+}
+
+export interface DeleteByPrefixResult {
+  deleted: number;
 }
 
 export interface FileObject extends FileMetadata {
@@ -152,4 +166,17 @@ export interface FileStorageAdapter {
    * @returns FileMetadata
    */
   move(sourceKey: string, destinationKey: string): Promise<FileMetadata>;
+
+  /**
+   * Deletes every key under the given prefix, paginating through underlying list calls.
+   *
+   * @param prefix - Key prefix to remove
+   * @param opts - Pagination/limit options
+   *
+   * @returns Total count of keys deleted
+   */
+  deleteByPrefix(
+    prefix: string,
+    opts?: DeleteByPrefixOptions,
+  ): Promise<DeleteByPrefixResult>;
 }

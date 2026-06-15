@@ -25,7 +25,6 @@ export async function POST(request: Request) {
     const adapter = createAdapter(adapterName);
     const metadata = await adapter.upload(key, file, {
       contentType: file.type || undefined,
-      metadata: { key },
     });
 
     return Response.json({ metadata });

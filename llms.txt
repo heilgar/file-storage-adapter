@@ -1,0 +1,27 @@
+# File Storage Adapter
+
+> Framework-agnostic file storage library for Node.js and TypeScript. One adapter API across AWS S3, Vercel Blob, and the local filesystem. Switch backends with a config change — no app code edits.
+
+This is a TypeScript monorepo of npm packages providing a unified file storage interface (`upload`, `download`, `getMetadata`, `list`, `exists`, `delete`, `deleteByPrefix`, `copy`, `move`, `getSignedUrl`, `getSignedUrlUpload`) implemented for three backends: local filesystem, AWS S3 (also LocalStack and MinIO via custom endpoints), and Vercel Blob (public and private stores).
+
+## Docs
+
+- [README](https://github.com/heilgar/file-storage-adapter/blob/main/README.md): overview, quick start, per-adapter usage, FAQ
+- [Full LLM context](https://github.com/heilgar/file-storage-adapter/blob/main/llms.md): architecture, every interface, every method, integration recipes
+- [Contributing](https://github.com/heilgar/file-storage-adapter/blob/main/CONTRIBUTING.md)
+- [License (MIT)](https://github.com/heilgar/file-storage-adapter/blob/main/LICENCE)
+
+## Packages
+
+- [@heilgar/file-storage-adapter-core](https://www.npmjs.com/package/@heilgar/file-storage-adapter-core): interfaces and base adapter helpers
+- [@heilgar/file-storage-adapter-fs](https://www.npmjs.com/package/@heilgar/file-storage-adapter-fs): local filesystem
+- [@heilgar/file-storage-adapter-s3](https://www.npmjs.com/package/@heilgar/file-storage-adapter-s3): AWS S3, LocalStack, MinIO
+- [@heilgar/file-storage-adapter-vercel-blob](https://www.npmjs.com/package/@heilgar/file-storage-adapter-vercel-blob): Vercel Blob (public + private)
+
+## Source
+
+- [Core types](https://github.com/heilgar/file-storage-adapter/blob/main/packages/core/src/types.ts)
+- [Base adapter](https://github.com/heilgar/file-storage-adapter/blob/main/packages/core/src/base-adapter.ts)
+- [FsAdapter](https://github.com/heilgar/file-storage-adapter/blob/main/packages/fs/src/index.ts)
+- [S3Adapter](https://github.com/heilgar/file-storage-adapter/blob/main/packages/s3/src/index.ts)
+- [VercelBlobAdapter](https://github.com/heilgar/file-storage-adapter/blob/main/packages/vercel-blob/src/index.ts)
