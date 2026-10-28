@@ -1,6 +1,6 @@
 {
   "name": "@heilgar/file-storage-adapter-vercel-blob",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Vercel Blob file storage adapter for Node.js (public + private stores, signed URLs) — unified API shared with the filesystem and AWS S3 adapters.",
   "type": "module",
   "main": "./dist/index.js",
@@ -46,7 +46,7 @@
   "author": "heilgar",
   "license": "MIT",
   "dependencies": {
-    "@heilgar/file-storage-adapter-core": "^2.0.0",
+    "@heilgar/file-storage-adapter-core": "^2.1.0",
     "@vercel/blob": "^2.4.0",
     "mime-types": "^3.0.2"
   },

@@ -51,7 +51,15 @@ interface FileStorageAdapter {
   move(sourceKey: string, destinationKey: string): Promise<FileMetadata>;
   deleteByPrefix(prefix: string, opts?: DeleteByPrefixOptions): Promise<DeleteByPrefixResult>;
 }
+
+interface SignedUrlOptions {
+  expiresIn: number;
+  contentType?: string;
+  maxSizeInBytes?: number; // upload size cap, provider-enforced
+}
 ```
+
+`maxSizeInBytes` applies to `getSignedUrlUpload()` and is enforced by the provider at upload time. Vercel Blob only for now; S3 tracked in heilgar/file-storage-adapter#5.
 
 ### FileMetadata
 

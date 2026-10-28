@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.1.0 — 2026-10-28
+
+### Added
+
+- `getSignedUrlUpload(key, { maxSizeInBytes })` forwards the cap as
+  `maximumSizeInBytes` to both `issueSignedToken` and `presignUrl`, so Vercel
+  Blob rejects uploads over the limit. Omitted when not set.
+- Requires `@heilgar/file-storage-adapter-core` `^2.1.0`.
+
+### Fixed
+
+- Presigned upload URLs are now usable from a browser `PUT`:
+  - Signed with `addRandomSuffix: false` and `allowOverwrite: false`. Previously
+    Blob stored the upload as `<name>-<random>.<ext>`, so the caller could not
+    find the key it signed.
+  - When `contentType` is given, the returned `headers` include
+    `x-content-type` (alongside `Content-Type`). Blob ignores `Content-Type` on
+    `PUT` and reads the stored type from `x-content-type`, otherwise guessing
+    from the extension. Send all returned `headers` with the `PUT`.
+
+### Behavior change
+
+- A presigned `PUT` to a key that already holds a blob is now rejected
+  (`allowOverwrite: false`). Delete the existing blob first, or sign a new key.
+
 ## 2.0.0 — 2026-06-15
 
 ### Breaking changes

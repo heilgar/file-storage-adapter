@@ -218,12 +218,15 @@ export class VercelBlobAdapter extends BaseAdapter {
     const expiresInSec = options.expiresIn || VercelBlobAdapter.DEFAULT_SIGNED_URL_EXPIRATION;
     const validUntil = Date.now() + expiresInSec * 1000;
     const allowedContentTypes = options.contentType ? [options.contentType] : undefined;
+    const sizeLimit =
+      options.maxSizeInBytes !== undefined ? { maximumSizeInBytes: options.maxSizeInBytes } : {};
 
     const signedToken = await issueSignedToken({
       pathname: fullKey,
       operations: ['put'],
       validUntil,
       allowedContentTypes,
+      ...sizeLimit,
       token: this.token,
     });
     const { presignedUrl } = await presignUrl(signedToken, {
@@ -232,11 +235,20 @@ export class VercelBlobAdapter extends BaseAdapter {
       access: 'private',
       validUntil,
       allowedContentTypes,
+      ...sizeLimit,
+      // Store at exactly the signed key and refuse to clobber an existing blob;
+      // the Blob default appends a random suffix, so the caller could not find it.
+      addRandomSuffix: false,
+      allowOverwrite: false,
     });
 
     return {
       url: presignedUrl,
-      headers: options.contentType ? { 'Content-Type': options.contentType } : undefined,
+      // Blob reads the stored content type from `x-content-type` (as @vercel/blob's own
+      // client PUT sends it) and ignores `Content-Type`, which is kept for the request body.
+      headers: options.contentType
+        ? { 'Content-Type': options.contentType, 'x-content-type': options.contentType }
+        : undefined,
     };
   }
 

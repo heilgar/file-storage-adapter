@@ -1,6 +1,6 @@
 {
   "name": "@heilgar/file-storage-adapter",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Framework-agnostic file storage adapter for Node.js and TypeScript — one unified API across AWS S3, Vercel Blob, and the local filesystem.",
   "keywords": [
     "storage",
