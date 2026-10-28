@@ -54,6 +54,12 @@ export interface DownloadOptions {
 export interface SignedUrlOptions {
   expiresIn: number;
   contentType?: string;
+  /**
+   * Maximum upload size in bytes for `getSignedUrlUpload()`. Enforced by the
+   * provider at upload time, not by the adapter. Adapters that cannot enforce
+   * it say so in their docs. Currently enforced by Vercel Blob only.
+   */
+  maxSizeInBytes?: number;
 }
 
 export interface SignedUrlUploadResult {

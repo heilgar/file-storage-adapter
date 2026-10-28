@@ -166,7 +166,7 @@ Swap `new S3Adapter({...})` for `new FsAdapter({ rootDir: '/tmp/test' })`. Same 
 `upload` accepts `Buffer | NodeJS.ReadableStream | File`. `download` returns the bytes plus metadata; use `options.range` for byte ranges on S3.
 
 **How do I generate a presigned upload URL?**
-`adapter.getSignedUrlUpload(key, { expiresIn, contentType })`. Supported on S3 and on private Vercel Blob stores.
+`adapter.getSignedUrlUpload(key, { expiresIn, contentType, maxSizeInBytes })`. Supported on S3 and on private Vercel Blob stores. `maxSizeInBytes` caps the upload size, enforced by the provider — Vercel Blob only for now; S3 tracked in heilgar/file-storage-adapter#5.
 
 **Does it work with MinIO?**
 Yes — use the S3 adapter with a custom `endpoint` and `forcePathStyle: true`.

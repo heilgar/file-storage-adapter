@@ -152,7 +152,7 @@ interface VercelBlobAdapterConfig {
 
 **Notes on `access`:**
 - `'public'` (default): `getSignedUrl()` returns the public blob URL; `getSignedUrlUpload()` throws (use `upload()` directly).
-- `'private'`: `getSignedUrl()` issues HMAC-signed time-limited URLs via `issueSignedToken` + `presignUrl`; `getSignedUrlUpload()` returns a presigned `PUT` URL for direct browser uploads.
+- `'private'`: `getSignedUrl()` issues HMAC-signed time-limited URLs via `issueSignedToken` + `presignUrl`; `getSignedUrlUpload()` returns a presigned `PUT` URL for direct browser uploads. `maxSizeInBytes` is forwarded as `maximumSizeInBytes` to both calls.
 
 ## API Reference
 
@@ -237,11 +237,14 @@ const url = await adapter.getSignedUrl('path/to/file.jpg', {
 ```typescript
 const result = await adapter.getSignedUrlUpload('path/to/file.jpg', {
   expiresIn: 3600,
-  contentType: 'image/jpeg'
+  contentType: 'image/jpeg',
+  maxSizeInBytes: 10 * 1024 * 1024  // optional, provider-enforced
 });
 ```
 
 **Returns:** `SignedUrlUploadResult` with url and optional headers
+
+`maxSizeInBytes` (optional): maximum upload size, enforced by the provider at upload time. Vercel Blob only for now; S3 tracked in heilgar/file-storage-adapter#5. Other adapters ignore it.
 
 #### Copy
 ```typescript

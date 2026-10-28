@@ -47,6 +47,7 @@ const url = await adapter.getSignedUrl('docs/contract.pdf', { expiresIn: 600 });
 const { url: putUrl, headers } = await adapter.getSignedUrlUpload('docs/contract.pdf', {
   expiresIn: 600,
   contentType: 'application/pdf',
+  maxSizeInBytes: 10 * 1024 * 1024, // optional; forwarded as maximumSizeInBytes
 });
 ```
 
@@ -78,6 +79,7 @@ The method paginates through `list()` with `hasMore`/`cursor` and is safe to ret
 - `access` must match the Blob store's access mode in Vercel — mixing modes will fail at the API.
 - Public stores: `getSignedUrl()` returns the underlying public blob URL; `getSignedUrlUpload()` throws (use `upload()` directly).
 - Private stores: `getSignedUrl()` and `getSignedUrlUpload()` produce HMAC-signed URLs with `validUntil = now + expiresIn s`.
+- `getSignedUrlUpload(key, { maxSizeInBytes })` passes `maximumSizeInBytes` to `issueSignedToken` and `presignUrl`; Vercel Blob rejects larger uploads.
 - Range downloads are not supported.
 
 ## Breaking changes in 2.0.0

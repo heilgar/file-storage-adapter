@@ -1,4 +1,14 @@
+import { issueSignedToken, presignUrl } from '@vercel/blob';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@vercel/blob', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@vercel/blob')>();
+  return {
+    ...actual,
+    issueSignedToken: vi.fn(actual.issueSignedToken),
+    presignUrl: vi.fn(actual.presignUrl),
+  };
+});
 
 vi.hoisted(() => {
   process.env.VERCEL_BLOB_API_URL = 'http://localhost:3100/api/blob';
@@ -213,5 +223,45 @@ describe('VercelBlobAdapter', () => {
         /deleteByPrefix limit must be a non-negative integer/,
       );
     });
+  });
+});
+
+describe('VercelBlobAdapter getSignedUrlUpload maxSizeInBytes', () => {
+  const adapter = new VercelBlobAdapter({ token: TOKEN, access: 'private' });
+
+  function stubSigning(): void {
+    vi.mocked(issueSignedToken).mockResolvedValueOnce('signed-token' as never);
+    vi.mocked(presignUrl).mockResolvedValueOnce({
+      presignedUrl: 'https://example.test/presigned',
+    } as never);
+  }
+
+  it('forwards maxSizeInBytes as maximumSizeInBytes to issueSignedToken and presignUrl', async () => {
+    stubSigning();
+    const maxSizeInBytes = 10 * 1024 * 1024;
+
+    const result = await adapter.getSignedUrlUpload('big.bin', { expiresIn: 60, maxSizeInBytes });
+
+    expect(result.url).toBe('https://example.test/presigned');
+    const [issueOptions] = vi.mocked(issueSignedToken).mock.calls.at(-1) ?? [];
+    expect(issueOptions).toMatchObject({ maximumSizeInBytes: maxSizeInBytes });
+    const [token, presignOptions] = vi.mocked(presignUrl).mock.calls.at(-1) ?? [];
+    expect(token).toBe('signed-token');
+    expect(presignOptions).toMatchObject({
+      operation: 'put',
+      access: 'private',
+      maximumSizeInBytes: maxSizeInBytes,
+    });
+  });
+
+  it('omits maximumSizeInBytes key from both calls when maxSizeInBytes is undefined', async () => {
+    stubSigning();
+
+    await adapter.getSignedUrlUpload('small.bin', { expiresIn: 60 });
+
+    const [issueOptions] = vi.mocked(issueSignedToken).mock.calls.at(-1) ?? [];
+    const [, presignOptions] = vi.mocked(presignUrl).mock.calls.at(-1) ?? [];
+    expect(issueOptions).not.toHaveProperty('maximumSizeInBytes');
+    expect(presignOptions).not.toHaveProperty('maximumSizeInBytes');
   });
 });

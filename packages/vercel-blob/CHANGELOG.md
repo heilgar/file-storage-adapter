@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.0 — 2026-10-28
+
+### Added
+
+- `getSignedUrlUpload(key, { maxSizeInBytes })` forwards the cap as
+  `maximumSizeInBytes` to both `issueSignedToken` and `presignUrl`, so Vercel
+  Blob rejects uploads over the limit. Omitted when not set.
+- Requires `@heilgar/file-storage-adapter-core` `^2.1.0`.
+
 ## 2.0.0 — 2026-06-15
 
 ### Breaking changes

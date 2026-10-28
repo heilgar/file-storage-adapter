@@ -218,12 +218,15 @@ export class VercelBlobAdapter extends BaseAdapter {
     const expiresInSec = options.expiresIn || VercelBlobAdapter.DEFAULT_SIGNED_URL_EXPIRATION;
     const validUntil = Date.now() + expiresInSec * 1000;
     const allowedContentTypes = options.contentType ? [options.contentType] : undefined;
+    const sizeLimit =
+      options.maxSizeInBytes !== undefined ? { maximumSizeInBytes: options.maxSizeInBytes } : {};
 
     const signedToken = await issueSignedToken({
       pathname: fullKey,
       operations: ['put'],
       validUntil,
       allowedContentTypes,
+      ...sizeLimit,
       token: this.token,
     });
     const { presignedUrl } = await presignUrl(signedToken, {
@@ -232,6 +235,7 @@ export class VercelBlobAdapter extends BaseAdapter {
       access: 'private',
       validUntil,
       allowedContentTypes,
+      ...sizeLimit,
     });
 
     return {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.0 — 2026-10-28
+
+### Added
+
+- `SignedUrlOptions.maxSizeInBytes?: number` — maximum upload size for
+  `getSignedUrlUpload()`, enforced by the provider at upload time. Adapters
+  that cannot enforce it document so. Vercel Blob only for now; S3 tracked in
+  heilgar/file-storage-adapter#5.
+
 ## 2.0.0 — 2026-06-15
 
 ### Breaking changes
