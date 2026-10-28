@@ -236,11 +236,19 @@ export class VercelBlobAdapter extends BaseAdapter {
       validUntil,
       allowedContentTypes,
       ...sizeLimit,
+      // Store at exactly the signed key and refuse to clobber an existing blob;
+      // the Blob default appends a random suffix, so the caller could not find it.
+      addRandomSuffix: false,
+      allowOverwrite: false,
     });
 
     return {
       url: presignedUrl,
-      headers: options.contentType ? { 'Content-Type': options.contentType } : undefined,
+      // Blob reads the stored content type from `x-content-type` (as @vercel/blob's own
+      // client PUT sends it) and ignores `Content-Type`, which is kept for the request body.
+      headers: options.contentType
+        ? { 'Content-Type': options.contentType, 'x-content-type': options.contentType }
+        : undefined,
     };
   }
 

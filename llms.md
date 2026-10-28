@@ -152,7 +152,7 @@ interface VercelBlobAdapterConfig {
 
 **Notes on `access`:**
 - `'public'` (default): `getSignedUrl()` returns the public blob URL; `getSignedUrlUpload()` throws (use `upload()` directly).
-- `'private'`: `getSignedUrl()` issues HMAC-signed time-limited URLs via `issueSignedToken` + `presignUrl`; `getSignedUrlUpload()` returns a presigned `PUT` URL for direct browser uploads. `maxSizeInBytes` is forwarded as `maximumSizeInBytes` to both calls.
+- `'private'`: `getSignedUrl()` issues HMAC-signed time-limited URLs via `issueSignedToken` + `presignUrl`; `getSignedUrlUpload()` returns a presigned `PUT` URL for direct browser uploads. `maxSizeInBytes` is forwarded as `maximumSizeInBytes` to both calls. The upload URL is signed with `addRandomSuffix: false` and `allowOverwrite: false` (stored at exactly the key; existing blobs not overwritten). With `contentType`, returned `headers` include `x-content-type` (Blob ignores `Content-Type`); send all returned headers with the `PUT`.
 
 ## API Reference
 

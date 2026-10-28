@@ -49,6 +49,8 @@ const { url: putUrl, headers } = await adapter.getSignedUrlUpload('docs/contract
   contentType: 'application/pdf',
   maxSizeInBytes: 10 * 1024 * 1024, // optional; forwarded as maximumSizeInBytes
 });
+// Browser: send the returned headers (includes x-content-type) with the PUT.
+await fetch(putUrl, { method: 'PUT', headers, body: file });
 ```
 
 ## Configuration
@@ -80,6 +82,8 @@ The method paginates through `list()` with `hasMore`/`cursor` and is safe to ret
 - Public stores: `getSignedUrl()` returns the underlying public blob URL; `getSignedUrlUpload()` throws (use `upload()` directly).
 - Private stores: `getSignedUrl()` and `getSignedUrlUpload()` produce HMAC-signed URLs with `validUntil = now + expiresIn s`.
 - `getSignedUrlUpload(key, { maxSizeInBytes })` passes `maximumSizeInBytes` to `issueSignedToken` and `presignUrl`; Vercel Blob rejects larger uploads.
+- Signed upload URLs store at exactly `key` (`addRandomSuffix: false`) and refuse to overwrite an existing blob (`allowOverwrite: false`).
+- Send every returned `headers` entry with the `PUT`. With `contentType`, that includes `x-content-type`, which Blob uses for the stored content type (it ignores `Content-Type`).
 - Range downloads are not supported.
 
 ## Breaking changes in 2.0.0

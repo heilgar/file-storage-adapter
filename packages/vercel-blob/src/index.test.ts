@@ -226,21 +226,24 @@ describe('VercelBlobAdapter', () => {
   });
 });
 
+const privateAdapter = new VercelBlobAdapter({ token: TOKEN, access: 'private' });
+
+function stubSigning(): void {
+  vi.mocked(issueSignedToken).mockResolvedValueOnce('signed-token' as never);
+  vi.mocked(presignUrl).mockResolvedValueOnce({
+    presignedUrl: 'https://example.test/presigned',
+  } as never);
+}
+
 describe('VercelBlobAdapter getSignedUrlUpload maxSizeInBytes', () => {
-  const adapter = new VercelBlobAdapter({ token: TOKEN, access: 'private' });
-
-  function stubSigning(): void {
-    vi.mocked(issueSignedToken).mockResolvedValueOnce('signed-token' as never);
-    vi.mocked(presignUrl).mockResolvedValueOnce({
-      presignedUrl: 'https://example.test/presigned',
-    } as never);
-  }
-
   it('forwards maxSizeInBytes as maximumSizeInBytes to issueSignedToken and presignUrl', async () => {
     stubSigning();
     const maxSizeInBytes = 10 * 1024 * 1024;
 
-    const result = await adapter.getSignedUrlUpload('big.bin', { expiresIn: 60, maxSizeInBytes });
+    const result = await privateAdapter.getSignedUrlUpload('big.bin', {
+      expiresIn: 60,
+      maxSizeInBytes,
+    });
 
     expect(result.url).toBe('https://example.test/presigned');
     const [issueOptions] = vi.mocked(issueSignedToken).mock.calls.at(-1) ?? [];
@@ -257,11 +260,48 @@ describe('VercelBlobAdapter getSignedUrlUpload maxSizeInBytes', () => {
   it('omits maximumSizeInBytes key from both calls when maxSizeInBytes is undefined', async () => {
     stubSigning();
 
-    await adapter.getSignedUrlUpload('small.bin', { expiresIn: 60 });
+    await privateAdapter.getSignedUrlUpload('small.bin', { expiresIn: 60 });
 
     const [issueOptions] = vi.mocked(issueSignedToken).mock.calls.at(-1) ?? [];
     const [, presignOptions] = vi.mocked(presignUrl).mock.calls.at(-1) ?? [];
     expect(issueOptions).not.toHaveProperty('maximumSizeInBytes');
     expect(presignOptions).not.toHaveProperty('maximumSizeInBytes');
+  });
+});
+
+describe('VercelBlobAdapter getSignedUrlUpload key and content type', () => {
+  it('passes addRandomSuffix: false and allowOverwrite: false to presignUrl only', async () => {
+    stubSigning();
+
+    await privateAdapter.getSignedUrlUpload('exact.bin', { expiresIn: 60 });
+
+    const [, presignOptions] = vi.mocked(presignUrl).mock.calls.at(-1) ?? [];
+    expect(presignOptions).toMatchObject({ addRandomSuffix: false, allowOverwrite: false });
+    const [issueOptions] = vi.mocked(issueSignedToken).mock.calls.at(-1) ?? [];
+    expect(issueOptions).not.toHaveProperty('addRandomSuffix');
+    expect(issueOptions).not.toHaveProperty('allowOverwrite');
+  });
+
+  it('returns Content-Type and x-content-type headers when contentType is given', async () => {
+    stubSigning();
+
+    const result = await privateAdapter.getSignedUrlUpload('img.png', {
+      expiresIn: 60,
+      contentType: 'image/png',
+    });
+
+    expect(result.url).toBe('https://example.test/presigned');
+    expect(result.headers).toEqual({
+      'Content-Type': 'image/png',
+      'x-content-type': 'image/png',
+    });
+  });
+
+  it('returns undefined headers when contentType is not given', async () => {
+    stubSigning();
+
+    const result = await privateAdapter.getSignedUrlUpload('raw.bin', { expiresIn: 60 });
+
+    expect(result.headers).toBeUndefined();
   });
 });
